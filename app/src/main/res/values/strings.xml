@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Music Service Demo</string>
+    <string name="btn_prev">Prev</string>
+    <string name="btn_play">Play</string>
+    <string name="btn_pause">Pause</string>
+    <string name="btn_next">Next</string>
+    <string name="btn_start">Start Music</string>
+    <string name="btn_stop">Stop Music</string>
+    <string name="second_activity">Go to Second Activity</string>
+    <string name="song_list">Song List(tao to play)</string>
+    <string name="foreground">Run as Foreground Service</string>
+    <string name="playback">Playback Controls (Bound Service)</string>
+    <string name="service_control">Started Service Controls</string>
+    <string name="state">Sate : </string>
+</resources>
