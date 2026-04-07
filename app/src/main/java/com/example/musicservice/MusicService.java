@@ -128,6 +128,9 @@ public class MusicService extends Service {
 
         actionIntent = new Intent(this, MusicService.class);
         actionIntent.setAction(ACTION_PREVIOUS);
+        actionIntent.setAction(ACTION_PAUSE);
+        actionIntent.setAction(ACTION_NEXT);
+
 
 
         addActionIntent = PendingIntent.getService(
@@ -135,7 +138,8 @@ public class MusicService extends Service {
 
 
         activityIntent = new Intent(this, MainActivity.class);
-       pendingActivityIntent = PendingIntent.getActivity(
+        activityIntent.setAction(ACTION_PREVIOUS);
+        pendingActivityIntent = PendingIntent.getActivity(
                 this, 0, activityIntent,
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
@@ -167,7 +171,6 @@ public class MusicService extends Service {
                 onPrev();
             } else if (ACTION_PAUSE.equals(action)) {
                 onPause();
-                actionIntent.setAction("Play");
             } else if (ACTION_NEXT.equals(action)) {
                 onNext();
             }

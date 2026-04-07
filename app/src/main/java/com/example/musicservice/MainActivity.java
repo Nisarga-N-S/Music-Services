@@ -3,6 +3,8 @@ package com.example.musicservice;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
+import static com.example.musicservice.MusicService.ACTION_PREVIOUS;
+
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
@@ -15,6 +17,7 @@ import android.os.IBinder;
 import android.widget.ArrayAdapter;
 import android.widget.SeekBar;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
@@ -49,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+
+
         serviceIntent = new Intent(this, MusicService.class);
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
 
@@ -71,12 +76,9 @@ public class MainActivity extends AppCompatActivity {
         binding.swtchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 serviceIntent.putExtra("is_foreground",true);
-                startForegroundService(serviceIntent);
-                bindService(serviceIntent, connection, BIND_AUTO_CREATE);
                 binding.btnPause.setVisibility(VISIBLE);
             } else {
                 serviceIntent.putExtra("is_foreground",false);
-                startService(serviceIntent);
                 binding.btnPause.setVisibility(VISIBLE);
             }
         });
@@ -200,4 +202,8 @@ public class MainActivity extends AppCompatActivity {
             binding.songList.setAdapter(adapter);
         }
     }
+
+//    void showNotification(){
+//        if(getIntent().getAction())
+//    }
 }
