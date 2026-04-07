@@ -26,6 +26,12 @@ public class MusicService extends Service {
 
     public MediaPlayer mediaPlayer;
     private int position = 0;
+    NotificationCompat.Builder builder;
+    PendingIntent pendingActivityIntent;
+
+    Intent activityIntent;
+    Intent actionIntent;
+    PendingIntent addActionIntent;
     private final IBinder binder = new LocalBinder();
 
     ArrayList<Song> songs = new ArrayList<>();
@@ -120,17 +126,17 @@ public class MusicService extends Service {
 
         boolean notification =intent.getBooleanExtra("is_foreground",true);
 
-        Intent actionIntent = new Intent(this, MusicService.class);
+        actionIntent = new Intent(this, MusicService.class);
         actionIntent.setAction(ACTION_PREVIOUS);
 
 
-        PendingIntent pendingIntent = PendingIntent.getService(
+        addActionIntent = PendingIntent.getService(
                 this, 0, actionIntent, PendingIntent.FLAG_IMMUTABLE);
 
 
-        Intent openAppIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 0, openAppIntent,
+        activityIntent = new Intent(this, MainActivity.class);
+       pendingActivityIntent = PendingIntent.getActivity(
+                this, 0, activityIntent,
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
@@ -142,14 +148,14 @@ public class MusicService extends Service {
         }
         else {
 
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+           builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setContentTitle(s.name)
                     .setContentText(s.film + " - " + s.artist)
                     .setSmallIcon(R.drawable.library_music_24px)
-                    .addAction(R.drawable.ic_launcher_foreground, "Prev",pendingIntent)
-                    .addAction(R.drawable.ic_launcher_foreground, "Pause", pendingIntent)
-                    .addAction(R.drawable.ic_launcher_foreground, "Next", pendingIntent)
-                    .setContentIntent(pendingIntent);
+                    .addAction(R.drawable.skip_previous_24px, "Prev",addActionIntent)
+                    .addAction(R.drawable.play_pause_24px, "Pause", addActionIntent)
+                    .addAction(R.drawable.skip_next_24px, "Next", addActionIntent)
+                    .setContentIntent(pendingActivityIntent);
 
             startForeground(1, builder.build());
         }
@@ -161,6 +167,7 @@ public class MusicService extends Service {
                 onPrev();
             } else if (ACTION_PAUSE.equals(action)) {
                 onPause();
+                actionIntent.setAction("Play");
             } else if (ACTION_NEXT.equals(action)) {
                 onNext();
             }
