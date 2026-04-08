@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.RemoteViews;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -120,7 +121,6 @@ public class MusicService extends Service {
     public Song getCurrentSong() {
         return songs.get(position);
     }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
@@ -138,11 +138,11 @@ public class MusicService extends Service {
                 if(mediaPlayer.isPlaying()) {
                     onPause();
                     sendUIUpdate();
-                }else{
-                    builder.addAction(R.drawable.skip_previous_24px,"Play",pendingPlayIntent);
-                    onPlay();
-                    sendUIUpdate();
                 }
+//                }else if(!mediaPlayer.isPlaying()){
+//                    onPlay();
+//                    sendUIUpdate();
+//                }
 
             } else if (ACTION_NEXT.equals(action)) {
                 onNext();

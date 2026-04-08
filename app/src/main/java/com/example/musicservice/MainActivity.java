@@ -3,8 +3,6 @@ package com.example.musicservice;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
-import static com.example.musicservice.MusicService.ACTION_PREVIOUS;
-
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
@@ -51,14 +49,15 @@ public class MainActivity extends AppCompatActivity {
 
 
         binding.duration.setText("0.00" + " / " + "0.00");
+        binding.state.setText(R.string.state);
 
         serviceIntent = new Intent(this, MusicService.class);
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
 
-        receiver = new MusicUpdateReceiver((current, duration, isPlaying) -> {
+        receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted) -> {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
-            binding.duration.setText(formatTime(current) + " / " + formatTime(duration));
+            binding.duration.setText(formatted);
             updateSongUI();
             if(isPlaying){
                 binding.btnPause.setVisibility(VISIBLE);
@@ -84,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
             if (isChecked) {
                 startForegroundService(serviceIntent);
             } else {
-               startService(serviceIntent);
+                startService(serviceIntent);
             }
             binding.btnPause.setVisibility(VISIBLE);
             binding.state.setText(getString(R.string.state) + " Playing");
@@ -95,10 +94,10 @@ public class MainActivity extends AppCompatActivity {
             serviceIntent.putExtra("is_foreground",isForeground);
 
             if(isForeground){
-                    startForegroundService(serviceIntent);
-                }else{
-                    startService(serviceIntent);
-                }
+                startForegroundService(serviceIntent);
+            }else{
+                startService(serviceIntent);
+            }
             updateSongUI();
             binding.btnPause.setVisibility(VISIBLE);
             binding.state.setText(getString(R.string.state) + " Playing");
@@ -106,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
 
         binding.btnStop.setOnClickListener(v -> {
             if (mBound && mService != null) {
-                mService.onPause();
+               stopService(serviceIntent);
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
                 binding.state.setText(getString(R.string.state) + " Stopped");
@@ -170,13 +169,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-
-    private String formatTime(int milliseconds) {
-        long minutes = TimeUnit.MILLISECONDS.toMinutes(milliseconds);
-        long seconds = TimeUnit.MILLISECONDS.toSeconds(milliseconds) % 60;
-        return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -212,7 +204,8 @@ public class MainActivity extends AppCompatActivity {
     void updateSongUI() {
         if (mService != null) {
             Song s = mService.getCurrentSong();
-            binding.currentSong.setText(s.name + " - " + s.film + " - " + s.artist);
+            String songDetails= s.name + " - " + s.film + " - " + s.artist;
+            binding.currentSong.setText(songDetails);
         }
     }
 

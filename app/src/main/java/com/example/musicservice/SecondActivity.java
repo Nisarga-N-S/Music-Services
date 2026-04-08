@@ -50,10 +50,10 @@ public class SecondActivity extends AppCompatActivity {
         serviceIntent = new Intent(this, MusicService.class);
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
 
-        receiver = new MusicUpdateReceiver((current, duration, isPlaying) -> {
+        receiver = new MusicUpdateReceiver((current, duration, isPlaying,formatted) -> {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
-            binding.duration.setText(formatTime(current) + "/" + formatTime(duration));
+            binding.duration.setText(formatted);
             updateSongUI();
             if (isPlaying) {
                 binding.state.setText(getString(R.string.state) + " Playing");
@@ -129,12 +129,6 @@ public class SecondActivity extends AppCompatActivity {
             }
         });
     }
-
-        private String formatTime(int milliseconds) {
-            long minutes = TimeUnit.MILLISECONDS.toMinutes(milliseconds);
-            long seconds = TimeUnit.MILLISECONDS.toSeconds(milliseconds) % 60;
-            return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
-        }
 
         @Override
         protected void onResume() {
