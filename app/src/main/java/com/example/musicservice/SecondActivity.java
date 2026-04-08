@@ -3,8 +3,6 @@ package com.example.musicservice;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
-import static com.example.musicservice.MusicService.ACTION_PREVIOUS;
-
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
@@ -17,40 +15,37 @@ import android.os.IBinder;
 import android.widget.ArrayAdapter;
 import android.widget.SeekBar;
 
-import androidx.annotation.NonNull;
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.musicservice.databinding.ActivityMainBinding;
+import com.example.musicservice.databinding.ActivitySecondBinding;
 
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity {
+public class SecondActivity extends AppCompatActivity {
 
-    ActivityMainBinding binding;
+    ActivitySecondBinding binding;
     MusicService mService;
     boolean mBound = false;
     Intent serviceIntent;
+
     MusicUpdateReceiver receiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        binding = ActivitySecondBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
-
-        binding.duration.setText("0.00" + " / " + "0.00");
 
         serviceIntent = new Intent(this, MusicService.class);
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
@@ -58,13 +53,14 @@ public class MainActivity extends AppCompatActivity {
         receiver = new MusicUpdateReceiver((current, duration, isPlaying) -> {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
-            binding.duration.setText(formatTime(current) + " / " + formatTime(duration));
+            binding.duration.setText(formatTime(current) + "/" + formatTime(duration));
             updateSongUI();
-            if(isPlaying){
+            if (isPlaying) {
+                binding.state.setText(getString(R.string.state) + " Playing");
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
 
-            }else{
+            } else {
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
             }
@@ -79,45 +75,11 @@ public class MainActivity extends AppCompatActivity {
             );
         }
 
-        binding.swtchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            serviceIntent.putExtra("is_foreground",isChecked);
-            if (isChecked) {
-                startForegroundService(serviceIntent);
-            } else {
-               startService(serviceIntent);
-            }
-            binding.btnPause.setVisibility(VISIBLE);
-            binding.state.setText(getString(R.string.state) + " Playing");
-        });
-
-        binding.btnStart.setOnClickListener(v -> {
-            boolean isForeground=binding.swtchbutton.isChecked();
-            serviceIntent.putExtra("is_foreground",isForeground);
-
-            if(isForeground){
-                    startForegroundService(serviceIntent);
-                }else{
-                    startService(serviceIntent);
-                }
-            updateSongUI();
-            binding.btnPause.setVisibility(VISIBLE);
-            binding.state.setText(getString(R.string.state) + " Playing");
-        });
-
-        binding.btnStop.setOnClickListener(v -> {
-            if (mBound && mService != null) {
-                mService.onPause();
-                binding.btnPause.setVisibility(GONE);
-                binding.btnPlay.setVisibility(VISIBLE);
-                binding.state.setText(getString(R.string.state) + " Stopped");
-            }
-        });
-
         binding.btnPlay.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onPlay();
                 binding.btnPause.setVisibility(VISIBLE);
-                binding.btnNext.setVisibility(VISIBLE);
+                binding.btnPlay.setVisibility(GONE);
                 binding.state.setText(getString(R.string.state) + " Playing");
             }
         });
@@ -127,7 +89,6 @@ public class MainActivity extends AppCompatActivity {
                 mService.onPause();
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
-                binding.btnNext.setVisibility(VISIBLE);
                 binding.state.setText(getString(R.string.state) + " Pause");
             }
         });
@@ -150,6 +111,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        binding.materialButton.setOnClickListener(v -> {
+           serviceIntent=new Intent(this, MainActivity.class);
+           startActivity(serviceIntent);
+        });
+
         binding.seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
             }
@@ -162,66 +128,51 @@ public class MainActivity extends AppCompatActivity {
                     mService.mediaPlayer.seekTo(seekBar.getProgress());
             }
         });
-        binding.materialButton.setOnClickListener(v -> {
-
-            Intent intent=new Intent(this,SecondActivity.class);
-            startActivity(intent);
-
-        });
     }
 
-
-    private String formatTime(int milliseconds) {
-        long minutes = TimeUnit.MILLISECONDS.toMinutes(milliseconds);
-        long seconds = TimeUnit.MILLISECONDS.toSeconds(milliseconds) % 60;
-        return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
-        registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (mBound) {
-            stopService(serviceIntent);
-            unbindService(connection);
-            unregisterReceiver(receiver);
-            mBound = false;
-        }
-    }
-
-    ServiceConnection connection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
-            mService = binder.getService();
-            mBound = true;
-            updateSongList();
-            updateSongUI();
+        private String formatTime(int milliseconds) {
+            long minutes = TimeUnit.MILLISECONDS.toMinutes(milliseconds);
+            long seconds = TimeUnit.MILLISECONDS.toSeconds(milliseconds) % 60;
+            return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
         }
 
-        public void onServiceDisconnected(ComponentName name) {
-            mBound = false;
+        @Override
+        protected void onResume() {
+            super.onResume();
+            IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
+            registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
         }
-    };
 
-    void updateSongUI() {
-        if (mService != null) {
-            Song s = mService.getCurrentSong();
-            binding.currentSong.setText(s.name + " - " + s.film + " - " + s.artist);
+        @Override
+        protected void onStop() {
+            super.onStop();
+            if (mBound) {
+                stopService(serviceIntent);
+                unbindService(connection);
+                unregisterReceiver(receiver);
+                mBound = false;
+            }
         }
-    }
 
-    void updateSongList() {
-        if (mService != null) {
-            ArrayAdapter<Song> adapter = new ArrayAdapter<>(this,
-                    android.R.layout.simple_list_item_1, mService.songs);
-            binding.songList.setAdapter(adapter);
+        ServiceConnection connection = new ServiceConnection() {
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
+                mService = binder.getService();
+                mBound = true;
+                updateSongUI();
+            }
+
+            public void onServiceDisconnected(ComponentName name) {
+                mBound = false;
+            }
+        };
+
+        void updateSongUI() {
+            if (mService != null) {
+                Song s = mService.getCurrentSong();
+                binding.currentSong.setText(s.name + " - " + s.film + " - " + s.artist);
+            }
         }
-    }
+
 
 }

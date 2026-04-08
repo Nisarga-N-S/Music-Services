@@ -1,5 +1,7 @@
 package com.example.musicservice;
 
+import static android.content.ContentValues.TAG;
+
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -10,6 +12,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -20,18 +23,16 @@ public class MusicService extends Service {
 
     private static final String CHANNEL_ID = "MUSIC_CHANNEL_ID";
     public static final String ACTION_UPDATE_UI = "UPDATE_UI";
-    public static final String ACTION_PREVIOUS = "com.example.MusicService.ACTION_PREVIOUS";
-    public static final String ACTION_PAUSE = "com.example.MusicService.ACTION_PAUSE";
-    public static final String ACTION_NEXT = "com.example.MusicService.ACTION_NEXT";
+    public static final String ACTION_PREVIOUS = "ACTION_PREVIOUS";
+    public static final String ACTION_PAUSE = "ACTION_PAUSE";
+    public static final String ACTION_NEXT = "ACTION_NEXT";
 
     public MediaPlayer mediaPlayer;
     private int position = 0;
     NotificationCompat.Builder builder;
     PendingIntent pendingActivityIntent;
-
     Intent activityIntent;
-    Intent actionIntent;
-    PendingIntent addActionIntent;
+    PendingIntent pendingPlayIntent;
     private final IBinder binder = new LocalBinder();
 
     ArrayList<Song> songs = new ArrayList<>();
@@ -43,14 +44,19 @@ public class MusicService extends Service {
         @Override
         public void run() {
             if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-                Intent intent = new Intent(ACTION_UPDATE_UI);
-                intent.putExtra("current", mediaPlayer.getCurrentPosition());
-                intent.putExtra("duration", mediaPlayer.getDuration());
-                sendBroadcast(intent);
+                sendUIUpdate();
             }
             handler.postDelayed(this, 1000);
         }
     };
+
+    private void sendUIUpdate(){
+        Intent intent = new Intent(ACTION_UPDATE_UI);
+        intent.putExtra("current", mediaPlayer.getCurrentPosition());
+        intent.putExtra("duration", mediaPlayer.getDuration());
+        intent.putExtra("isPlaying",mediaPlayer.isPlaying());
+        sendBroadcast(intent);
+    }
 
     public class LocalBinder extends Binder {
         public MusicService getService() {
@@ -84,13 +90,15 @@ public class MusicService extends Service {
     public void onPause() {
         if (mediaPlayer != null && mediaPlayer.isPlaying())
             mediaPlayer.pause();
-//        pausedPosition=mediaPlayer.getCurrentPosition();
     }
 
     public void onNext() {
         if (mediaPlayer != null) {
             mediaPlayer.release();
-            position = (position + 1) % songs.size();
+            position++;
+            if(position>=songs.size()){
+                position=0;
+            }
             createMediaPlayer();
             mediaPlayer.start();
         }
@@ -99,18 +107,15 @@ public class MusicService extends Service {
     public void onPrev() {
         if (mediaPlayer != null) {
             mediaPlayer.release();
-            position = (position - 1 + songs.size()) % songs.size();
+            position--;
+            if(position<0){
+                position= songs.size()-1;
+            }
             createMediaPlayer();
             mediaPlayer.start();
         }
     }
 
-//    public void resumeMusic() {
-//        if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
-//            mediaPlayer.seekTo(pausedPosition);
-//            mediaPlayer.start();
-//        }
-//    }
 
     public Song getCurrentSong() {
         return songs.get(position);
@@ -120,22 +125,46 @@ public class MusicService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
 
+
         if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
             mediaPlayer.start();
         }
+        if(intent!=null&&intent.getAction()!=null){
+            String action=intent.getAction();
+            if(ACTION_PREVIOUS.equals(action)){
+                onPrev();
+                sendUIUpdate();
+            } else if (ACTION_PAUSE.equals(action)) {
+                if(mediaPlayer.isPlaying()) {
+                    onPause();
+                    sendUIUpdate();
+                }else{
+                    builder.addAction(R.drawable.skip_previous_24px,"Play",pendingPlayIntent);
+                    onPlay();
+                    sendUIUpdate();
+                }
+
+            } else if (ACTION_NEXT.equals(action)) {
+                onNext();
+                sendUIUpdate();
+
+            }
+        }
+        Log.d(TAG, "onStartCommand: "+intent.getAction());
 
         boolean notification =intent.getBooleanExtra("is_foreground",true);
 
-        actionIntent = new Intent(this, MusicService.class);
-        actionIntent.setAction(ACTION_PREVIOUS);
-        actionIntent.setAction(ACTION_PAUSE);
-        actionIntent.setAction(ACTION_NEXT);
+
+        PendingIntent pendingPrevIntent=PendingIntent.getService(this,1,new Intent(this,MusicService.class).setAction(ACTION_PREVIOUS),PendingIntent.FLAG_IMMUTABLE);
 
 
+        PendingIntent pendingPauseIntent=PendingIntent.getService(this,2,new Intent(this,MusicService.class).setAction(ACTION_PAUSE),PendingIntent.FLAG_IMMUTABLE);
 
-        addActionIntent = PendingIntent.getService(
-                this, 0, actionIntent, PendingIntent.FLAG_IMMUTABLE);
 
+        PendingIntent pendingNextIntent=PendingIntent.getService(this,4,new Intent(this,MusicService.class).setAction(ACTION_NEXT),PendingIntent.FLAG_IMMUTABLE);
+
+
+        pendingPlayIntent=PendingIntent.getService(this,3,new Intent(this,MusicService.class),PendingIntent.FLAG_IMMUTABLE);
 
         activityIntent = new Intent(this, MainActivity.class);
         activityIntent.setAction(ACTION_PREVIOUS);
@@ -146,35 +175,22 @@ public class MusicService extends Service {
 
         Song s = getCurrentSong();
 
-        if(!notification) {
-
-            stopForeground(true);
-        }
-        else {
-
+        if(notification){
            builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setContentTitle(s.name)
                     .setContentText(s.film + " - " + s.artist)
                     .setSmallIcon(R.drawable.library_music_24px)
-                    .addAction(R.drawable.skip_previous_24px, "Prev",addActionIntent)
-                    .addAction(R.drawable.play_pause_24px, "Pause", addActionIntent)
-                    .addAction(R.drawable.skip_next_24px, "Next", addActionIntent)
+                    .addAction(R.drawable.skip_previous_24px, "Prev",pendingPrevIntent)
+                    .addAction(R.drawable.play_pause_24px, "Pause", pendingPauseIntent)
+                    .addAction(R.drawable.skip_next_24px, "Next", pendingNextIntent)
                     .setContentIntent(pendingActivityIntent);
 
             startForeground(1, builder.build());
         }
-
-        if (intent != null) {
-            String action = intent.getAction();
-
-            if (ACTION_PREVIOUS.equals(action)) {
-                onPrev();
-            } else if (ACTION_PAUSE.equals(action)) {
-                onPause();
-            } else if (ACTION_NEXT.equals(action)) {
-                onNext();
-            }
+        else{
+            stopForeground(true);
         }
+
 
         return START_STICKY;
     }

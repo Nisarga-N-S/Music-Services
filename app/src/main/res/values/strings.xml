@@ -11,5 +11,6 @@
     <string name="foreground">Run as Foreground Service</string>
     <string name="playback">Playback Controls (Bound Service)</string>
     <string name="service_control">Started Service Controls</string>
+    <string name="mainactivity_button">Go Back to MainActivity</string>
     <string name="state">Sate : </string>
 </resources>
