@@ -135,15 +135,6 @@ public class SecondActivity extends AppCompatActivity {
         registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (mBound) {
-            unbindService(connection);
-            unregisterReceiver(receiver);
-            mBound = false;
-        }
-    }
 
     ServiceConnection connection = new ServiceConnection() {
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -161,7 +152,7 @@ public class SecondActivity extends AppCompatActivity {
     void updateSongUI() {
         if (mService != null) {
             Song s = mService.getCurrentSong();
-            binding.currentSong.setText(s.name + " - " + s.film + " - " + s.artist);
+            binding.currentSong.setText(s.toString());
         }
     }
 

@@ -12,6 +12,7 @@ import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.SeekBar;
 
@@ -33,6 +34,9 @@ public class MainActivity extends AppCompatActivity {
     MusicService mService;
     boolean mBound = false;
     Intent serviceIntent;
+
+    public static final String TAG = "Music_service--->";
+
     boolean isForeground;
     MusicUpdateReceiver receiver;
 
@@ -49,9 +53,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         updateSongUI();
-        binding.duration.setText("0.00" + " / " + "0.00");
 
         serviceIntent = new Intent(this, MusicService.class);
+
+        isForeground=binding.swtchbutton.isChecked();
+
+
+        Log.d(TAG, "Status "+isForeground);
 
         receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted,isState) -> {
             binding.seekbar.setMax(duration);
@@ -82,21 +90,25 @@ public class MainActivity extends AppCompatActivity {
 
         binding.swtchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
             serviceIntent.putExtra("is_foreground",isChecked);
-            if (isForeground) {
+            if (isChecked) {
                 startForegroundService(serviceIntent);
+                Log.d(TAG, "onCreate: "+isChecked);
             } else {
+                Log.d(TAG, "onCreate: "+isChecked);
                 startService(serviceIntent);
             }
             binding.btnPause.setVisibility(VISIBLE);
         });
 
         binding.btnStart.setOnClickListener(v -> {
+            serviceIntent.putExtra("is_foreground",isForeground);
             if(isForeground){
                 startForegroundService(serviceIntent);
             }else{
                 startService(serviceIntent);
             }
             binding.btnPause.setVisibility(VISIBLE);
+
         });
 
         binding.btnStop.setOnClickListener(v -> {
@@ -180,7 +192,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopService(serviceIntent);
     }
 
     ServiceConnection connection = new ServiceConnection() {
@@ -188,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            binding.swtchbutton.setChecked(mService.notification);
             updateSongList();
             updateSongUI();
         }
@@ -200,8 +212,7 @@ public class MainActivity extends AppCompatActivity {
     void updateSongUI() {
         if (mService != null) {
             Song s = mService.getCurrentSong();
-            String songDetails= s.name + " - " + s.film + " - " + s.artist;
-            binding.currentSong.setText(songDetails);
+            binding.currentSong.setText(s.toString());
         }
     }
 

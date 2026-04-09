@@ -28,6 +28,7 @@ public class MusicService extends Service {
     public static final String ACTION_PAUSE = "ACTION_PAUSE";
     public static final String ACTION_NEXT = "ACTION_NEXT";
 
+
     boolean notification;
 
     public MediaPlayer mediaPlayer;
@@ -35,6 +36,7 @@ public class MusicService extends Service {
     NotificationCompat.Builder builder;
     PendingIntent pendingActivityIntent;
     Intent activityIntent;
+
     PendingIntent pendingPlayIntent;
 
     private final IBinder binder = new LocalBinder();
@@ -68,6 +70,8 @@ public class MusicService extends Service {
             return "Pause";
         }
     }
+
+
 
     public class LocalBinder extends Binder {
         public MusicService getService() {
