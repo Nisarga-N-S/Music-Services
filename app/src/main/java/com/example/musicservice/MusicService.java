@@ -129,16 +129,6 @@ public class MusicService extends Service {
         }
     }
 
-//    public void onStart(){
-//        if(!mediaPlayer.isPlaying()){
-//            mediaPlayer.start();
-//        }
-//    }
-
-//    public void isChecked(){
-//        mediaPlayer.start();
-//    }
-
     public void onStop() {
         if (mediaPlayer != null) {
             mediaPlayer.stop();

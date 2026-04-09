@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     MusicService mService;
     boolean mBound = false;
     Intent serviceIntent;
+    boolean isForeground;
     MusicUpdateReceiver receiver;
 
     @Override
@@ -56,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
+            binding.state.setText(getString(R.string.state) + isState);
             updateSongUI();
             if(isPlaying){
                 binding.btnPause.setVisibility(VISIBLE);
@@ -66,7 +68,6 @@ public class MainActivity extends AppCompatActivity {
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
             }
-            binding.state.setText(getString(R.string.state) + isState);
 
 
         });
@@ -81,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
 
         binding.swtchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
             serviceIntent.putExtra("is_foreground",isChecked);
-            if (isChecked) {
+            if (isForeground) {
                 startForegroundService(serviceIntent);
             } else {
                 startService(serviceIntent);
@@ -90,8 +91,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
         binding.btnStart.setOnClickListener(v -> {
-            boolean isForeground=binding.swtchbutton.isChecked();
-            serviceIntent.putExtra("is_foreground",isForeground);
             if(isForeground){
                 startForegroundService(serviceIntent);
             }else{
@@ -101,8 +100,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         binding.btnStop.setOnClickListener(v -> {
-            mService.onStop();
             binding.state.setText(getString(R.string.state) + " Stopped");
+            mService.onStop();
         });
 
         binding.btnPlay.setOnClickListener(v -> {

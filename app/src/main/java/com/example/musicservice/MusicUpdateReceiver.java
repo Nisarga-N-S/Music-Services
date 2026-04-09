@@ -9,25 +9,26 @@ import java.util.concurrent.TimeUnit;
 
 public class MusicUpdateReceiver extends BroadcastReceiver {
 
-     public interface UpdateListener {
-            void onUpdate(int current, int duration,boolean isPlaying,String formatted,String isState);
-        }
-        private final UpdateListener listener;
+    public interface UpdateListener {
+        void onUpdate(int current, int duration, boolean isPlaying, String formatted, String isState);
+    }
 
-        public MusicUpdateReceiver(UpdateListener listener) {
-            this.listener = listener;
-        }
+    private final UpdateListener listener;
 
-        @Override
-        public void onReceive(Context context, Intent intent) {
+    public MusicUpdateReceiver(UpdateListener listener) {
+        this.listener = listener;
+    }
 
-            int current = intent.getIntExtra("current", 0);
-            int duration = intent.getIntExtra("duration", 0);
-            boolean isPlaying=intent.getBooleanExtra("isPlaying",false);
-            String isState=intent.getStringExtra("isState");
-            String formatted=formatTime(current) + "/" + formatTime(duration);
-            listener.onUpdate(current, duration,isPlaying,formatted,isState);
-        }
+    @Override
+    public void onReceive(Context context, Intent intent) {
+
+        int current = intent.getIntExtra("current", 0);
+        int duration = intent.getIntExtra("duration", 0);
+        boolean isPlaying = intent.getBooleanExtra("isPlaying", false);
+        String isState = intent.getStringExtra("isState");
+        String formatted = formatTime(current) + "/" + formatTime(duration);
+        listener.onUpdate(current, duration, isPlaying, formatted, isState);
+    }
 
     private String formatTime(int milliseconds) {
         long minutes = TimeUnit.MILLISECONDS.toMinutes(milliseconds);

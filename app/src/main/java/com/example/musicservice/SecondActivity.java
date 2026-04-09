@@ -51,7 +51,7 @@ public class SecondActivity extends AppCompatActivity {
         serviceIntent = new Intent(this, MusicService.class);
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
 
-        receiver = new MusicUpdateReceiver((current, duration, isPlaying,formatted,isState) -> {
+        receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted, isState) -> {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
@@ -109,9 +109,9 @@ public class SecondActivity extends AppCompatActivity {
         });
 
         binding.materialButton.setOnClickListener(v -> {
-           serviceIntent=new Intent(this, MainActivity.class);
-           startActivity(serviceIntent);
-           finish();
+            serviceIntent = new Intent(this, MainActivity.class);
+            startActivity(serviceIntent);
+            finish();
         });
 
         binding.seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -128,42 +128,42 @@ public class SecondActivity extends AppCompatActivity {
         });
     }
 
-        @Override
-        protected void onResume() {
-            super.onResume();
-            IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
-            registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
+        registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mBound) {
+            unbindService(connection);
+            unregisterReceiver(receiver);
+            mBound = false;
+        }
+    }
+
+    ServiceConnection connection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+            updateSongUI();
         }
 
-        @Override
-        protected void onStop() {
-            super.onStop();
-            if (mBound) {
-                unbindService(connection);
-                unregisterReceiver(receiver);
-                mBound = false;
-            }
+        public void onServiceDisconnected(ComponentName name) {
+            mBound = false;
         }
+    };
 
-        ServiceConnection connection = new ServiceConnection() {
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
-                mService = binder.getService();
-                mBound = true;
-                updateSongUI();
-            }
-
-            public void onServiceDisconnected(ComponentName name) {
-                mBound = false;
-            }
-        };
-
-        void updateSongUI() {
-            if (mService != null) {
-                Song s = mService.getCurrentSong();
-                binding.currentSong.setText(s.name + " - " + s.film + " - " + s.artist);
-            }
+    void updateSongUI() {
+        if (mService != null) {
+            Song s = mService.getCurrentSong();
+            binding.currentSong.setText(s.name + " - " + s.film + " - " + s.artist);
         }
+    }
 
 
 }
