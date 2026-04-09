@@ -47,12 +47,10 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-
+        updateSongUI();
         binding.duration.setText("0.00" + " / " + "0.00");
-        binding.state.setText(R.string.state);
 
         serviceIntent = new Intent(this, MusicService.class);
-        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
 
         receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted) -> {
             binding.seekbar.setMax(duration);
@@ -86,19 +84,16 @@ public class MainActivity extends AppCompatActivity {
                 startService(serviceIntent);
             }
             binding.btnPause.setVisibility(VISIBLE);
-            binding.state.setText(getString(R.string.state) + " Playing");
         });
 
         binding.btnStart.setOnClickListener(v -> {
             boolean isForeground=binding.swtchbutton.isChecked();
             serviceIntent.putExtra("is_foreground",isForeground);
-
             if(isForeground){
                 startForegroundService(serviceIntent);
             }else{
                 startService(serviceIntent);
             }
-            updateSongUI();
             binding.btnPause.setVisibility(VISIBLE);
             binding.state.setText(getString(R.string.state) + " Playing");
         });
@@ -134,7 +129,6 @@ public class MainActivity extends AppCompatActivity {
         binding.btnNext.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onNext();
-                updateSongUI();
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
             }
@@ -143,7 +137,6 @@ public class MainActivity extends AppCompatActivity {
         binding.btnPrev.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onPrev();
-                updateSongUI();
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
             }
@@ -172,6 +165,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if(!mBound){
+            bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
+        }
         IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
         registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
     }
@@ -180,11 +176,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         if (mBound) {
-            stopService(serviceIntent);
             unbindService(connection);
             unregisterReceiver(receiver);
             mBound = false;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopService(serviceIntent);
     }
 
     ServiceConnection connection = new ServiceConnection() {
