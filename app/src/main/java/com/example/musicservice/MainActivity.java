@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
         serviceIntent = new Intent(this, MusicService.class);
 
-        receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted) -> {
+        receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted,isState) -> {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
@@ -62,9 +62,12 @@ public class MainActivity extends AppCompatActivity {
                 binding.btnPlay.setVisibility(GONE);
 
             }else{
+
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
             }
+            binding.state.setText(getString(R.string.state) + isState);
+
 
         });
 
@@ -95,16 +98,11 @@ public class MainActivity extends AppCompatActivity {
                 startService(serviceIntent);
             }
             binding.btnPause.setVisibility(VISIBLE);
-            binding.state.setText(getString(R.string.state) + " Playing");
         });
 
         binding.btnStop.setOnClickListener(v -> {
-            if (mBound && mService != null) {
-               stopService(serviceIntent);
-                binding.btnPause.setVisibility(GONE);
-                binding.btnPlay.setVisibility(VISIBLE);
-                binding.state.setText(getString(R.string.state) + " Stopped");
-            }
+            mService.onStop();
+            binding.state.setText(getString(R.string.state) + " Stopped");
         });
 
         binding.btnPlay.setOnClickListener(v -> {
@@ -112,7 +110,6 @@ public class MainActivity extends AppCompatActivity {
                 mService.onPlay();
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnNext.setVisibility(VISIBLE);
-                binding.state.setText(getString(R.string.state) + " Playing");
             }
         });
 
@@ -122,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
                 binding.btnNext.setVisibility(VISIBLE);
-                binding.state.setText(getString(R.string.state) + " Pause");
             }
         });
 

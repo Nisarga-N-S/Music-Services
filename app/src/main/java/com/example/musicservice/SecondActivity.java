@@ -33,7 +33,6 @@ public class SecondActivity extends AppCompatActivity {
     MusicService mService;
     boolean mBound = false;
     Intent serviceIntent;
-
     MusicUpdateReceiver receiver;
 
     @Override
@@ -47,16 +46,17 @@ public class SecondActivity extends AppCompatActivity {
             return insets;
         });
 
+        updateSongUI();
+
         serviceIntent = new Intent(this, MusicService.class);
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
 
-        receiver = new MusicUpdateReceiver((current, duration, isPlaying,formatted) -> {
+        receiver = new MusicUpdateReceiver((current, duration, isPlaying,formatted,isState) -> {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
             updateSongUI();
             if (isPlaying) {
-                binding.state.setText(getString(R.string.state) + " Playing");
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
 
@@ -64,6 +64,7 @@ public class SecondActivity extends AppCompatActivity {
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
             }
+            binding.state.setText(getString(R.string.state) + isState);
 
         });
 
@@ -80,7 +81,6 @@ public class SecondActivity extends AppCompatActivity {
                 mService.onPlay();
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
-                binding.state.setText(getString(R.string.state) + " Playing");
             }
         });
 
@@ -89,14 +89,12 @@ public class SecondActivity extends AppCompatActivity {
                 mService.onPause();
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
-                binding.state.setText(getString(R.string.state) + " Pause");
             }
         });
 
         binding.btnNext.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onNext();
-                updateSongUI();
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
             }
@@ -105,7 +103,6 @@ public class SecondActivity extends AppCompatActivity {
         binding.btnPrev.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onPrev();
-                updateSongUI();
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
             }
@@ -114,6 +111,7 @@ public class SecondActivity extends AppCompatActivity {
         binding.materialButton.setOnClickListener(v -> {
            serviceIntent=new Intent(this, MainActivity.class);
            startActivity(serviceIntent);
+           finish();
         });
 
         binding.seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -141,7 +139,6 @@ public class SecondActivity extends AppCompatActivity {
         protected void onStop() {
             super.onStop();
             if (mBound) {
-                stopService(serviceIntent);
                 unbindService(connection);
                 unregisterReceiver(receiver);
                 mBound = false;

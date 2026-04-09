@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 public class MusicUpdateReceiver extends BroadcastReceiver {
 
      public interface UpdateListener {
-            void onUpdate(int current, int duration,boolean isPlaying,String formatted);
+            void onUpdate(int current, int duration,boolean isPlaying,String formatted,String isState);
         }
         private final UpdateListener listener;
 
@@ -24,8 +24,9 @@ public class MusicUpdateReceiver extends BroadcastReceiver {
             int current = intent.getIntExtra("current", 0);
             int duration = intent.getIntExtra("duration", 0);
             boolean isPlaying=intent.getBooleanExtra("isPlaying",false);
+            String isState=intent.getStringExtra("isState");
             String formatted=formatTime(current) + "/" + formatTime(duration);
-            listener.onUpdate(current, duration,isPlaying,formatted);
+            listener.onUpdate(current, duration,isPlaying,formatted,isState);
         }
 
     private String formatTime(int milliseconds) {
