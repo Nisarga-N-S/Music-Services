@@ -35,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
     boolean mBound = false;
     Intent serviceIntent;
 
+    boolean isSecondActivity;
+
     public static final String TAG = "Music_service--->";
 
     boolean isForeground;
@@ -55,11 +57,8 @@ public class MainActivity extends AppCompatActivity {
         updateSongUI();
 
         serviceIntent = new Intent(this, MusicService.class);
-
-        isForeground=binding.swtchbutton.isChecked();
-
-
         Log.d(TAG, "Status "+isForeground);
+        isForeground=binding.swtchbutton.isChecked();
 
         receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted,isState) -> {
             binding.seekbar.setMax(duration);
@@ -78,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
 
+
         });
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -89,15 +89,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         binding.swtchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            serviceIntent.putExtra("is_foreground",isChecked);
-            if (isChecked) {
-                startForegroundService(serviceIntent);
-                Log.d(TAG, "onCreate: "+isChecked);
-            } else {
-                Log.d(TAG, "onCreate: "+isChecked);
-                startService(serviceIntent);
+            if(mBound && mService!=null){
+                mService.setForegroundEnabled(isChecked);
             }
-            binding.btnPause.setVisibility(VISIBLE);
         });
 
         binding.btnStart.setOnClickListener(v -> {
@@ -112,8 +106,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         binding.btnStop.setOnClickListener(v -> {
-            binding.state.setText(getString(R.string.state) + " Stopped");
+            binding.state.setText(getString(R.string.state) + mService.isState());
+            Log.d(TAG, "onCreate: "+mService.isState());
             mService.onStop();
+            binding.btnPlay.setVisibility(VISIBLE);
         });
 
         binding.btnPlay.setOnClickListener(v -> {
@@ -129,15 +125,16 @@ public class MainActivity extends AppCompatActivity {
                 mService.onPause();
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
-                binding.btnNext.setVisibility(VISIBLE);
             }
         });
 
         binding.btnNext.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onNext();
-                binding.btnPause.setVisibility(VISIBLE);
-                binding.btnPlay.setVisibility(GONE);
+                if(mService.mediaPlayer!=null) {
+                    binding.btnPause.setVisibility(VISIBLE);
+                    binding.btnPlay.setVisibility(GONE);
+                }
             }
         });
 
@@ -147,6 +144,13 @@ public class MainActivity extends AppCompatActivity {
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
             }
+        });
+        binding.materialButton.setOnClickListener(v -> {
+            isSecondActivity=true;
+
+            Intent intent=new Intent(this,SecondActivity.class);
+            startActivity(intent);
+
         });
 
         binding.seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -161,20 +165,12 @@ public class MainActivity extends AppCompatActivity {
                     mService.mediaPlayer.seekTo(seekBar.getProgress());
             }
         });
-        binding.materialButton.setOnClickListener(v -> {
-
-            Intent intent=new Intent(this,SecondActivity.class);
-            startActivity(intent);
-
-        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if(!mBound){
             bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
-        }
         IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
         registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
     }
@@ -182,6 +178,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        if(!isSecondActivity) {
+            if (mBound && mService != null) {
+                mService.onStop();
+            }
+        }
         if (mBound) {
             unbindService(connection);
             unregisterReceiver(receiver);

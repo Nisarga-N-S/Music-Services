@@ -46,10 +46,7 @@ public class SecondActivity extends AppCompatActivity {
             return insets;
         });
 
-        updateSongUI();
-
         serviceIntent = new Intent(this, MusicService.class);
-        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
 
         receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted, isState) -> {
             binding.seekbar.setMax(duration);
@@ -131,10 +128,21 @@ public class SecondActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
         IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
         registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
     }
 
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mBound) {
+            unbindService(connection);
+            unregisterReceiver(receiver);
+            mBound = false;
+        }
+    }
 
     ServiceConnection connection = new ServiceConnection() {
         public void onServiceConnected(ComponentName name, IBinder service) {

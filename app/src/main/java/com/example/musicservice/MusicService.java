@@ -36,6 +36,7 @@ public class MusicService extends Service {
     NotificationCompat.Builder builder;
     PendingIntent pendingActivityIntent;
     Intent activityIntent;
+    Intent intent;
 
     PendingIntent pendingPlayIntent;
 
@@ -55,7 +56,7 @@ public class MusicService extends Service {
     };
 
     private void sendUIUpdate() {
-        Intent intent = new Intent(ACTION_UPDATE_UI);
+        intent = new Intent(ACTION_UPDATE_UI);
         intent.putExtra("current", mediaPlayer.getCurrentPosition());
         intent.putExtra("duration", mediaPlayer.getDuration());
         intent.putExtra("isPlaying", mediaPlayer.isPlaying());
@@ -64,11 +65,29 @@ public class MusicService extends Service {
     }
 
     public String isState() {
+
+        if(mediaPlayer==null){
+            return "Stopped";
+        }
         if (mediaPlayer.isPlaying()) {
             return "Playing";
         } else {
             return "Pause";
         }
+    }
+
+    public void setForegroundEnabled(boolean value){
+        notification=value;
+
+        if(value) {
+            if (builder != null) {
+                startForeground(1, builder.build());
+            }
+        }
+        else{
+                stopForeground(true);
+            }
+        Log.d(TAG, "setForegroundEnabled: "+value);
     }
 
 
@@ -98,9 +117,13 @@ public class MusicService extends Service {
     }
 
     public void onPlay() {
-        if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+        if(mediaPlayer==null){
+            createMediaPlayer();
+        }
+        if (!mediaPlayer.isPlaying()) {
             mediaPlayer.start();
         }
+
     }
 
     public void onPause() {
@@ -135,7 +158,8 @@ public class MusicService extends Service {
 
     public void onStop() {
         if (mediaPlayer != null) {
-            mediaPlayer.stop();
+            mediaPlayer.release();
+            mediaPlayer=null;
         }
         stopForeground(true);
         stopSelf();
@@ -155,8 +179,12 @@ public class MusicService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
 
+        if(mediaPlayer==null){
+            createMediaPlayer();
+        }
 
-        if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+
+        if (!mediaPlayer.isPlaying()) {
             mediaPlayer.start();
         }
 
@@ -202,16 +230,16 @@ public class MusicService extends Service {
 
         Song s = getCurrentSong();
 
-        if (notification) {
-            builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle(s.name)
-                    .setContentText(s.film + " - " + s.artist)
-                    .setSmallIcon(R.drawable.library_music_24px)
-                    .addAction(R.drawable.skip_previous_24px, "Prev", pendingPrevIntent)
-                    .addAction(R.drawable.play_pause_24px, "Pause", pendingPauseIntent)
-                    .addAction(R.drawable.skip_next_24px, "Next", pendingNextIntent)
-                    .setContentIntent(pendingActivityIntent);
+        builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(s.name)
+                .setContentText(s.film + " - " + s.artist)
+                .setSmallIcon(R.drawable.library_music_24px)
+                .addAction(R.drawable.skip_previous_24px, "Prev", pendingPrevIntent)
+                .addAction(R.drawable.play_pause_24px, "Pause", pendingPauseIntent)
+                .addAction(R.drawable.skip_next_24px, "Next", pendingNextIntent)
+                .setContentIntent(pendingActivityIntent);
 
+        if (notification) {
             startForeground(1, builder.build());
         } else {
             stopForeground(true);
