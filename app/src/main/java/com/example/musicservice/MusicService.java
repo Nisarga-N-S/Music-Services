@@ -48,8 +48,6 @@ public class MusicService extends Service {
 
     NotificationChannel channel;
 
-    PendingIntent pendingPlayIntent;
-
     private final IBinder binder = new LocalBinder();
 
     ArrayList<Song> songs = new ArrayList<>();

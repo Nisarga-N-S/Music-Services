@@ -213,7 +213,6 @@ public class MainActivity extends AppCompatActivity {
           s = mService.getCurrentSong();
             binding.currentSong.setText(s.toString());
         }
-        Log.d(TAG, "updateSongUI: "+ s);
     }
 
     void updateSongList() {
