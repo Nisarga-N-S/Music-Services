@@ -9,11 +9,9 @@ import android.app.Service;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Binder;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.RemoteViews;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -31,12 +29,24 @@ public class MusicService extends Service {
 
     boolean notification;
 
+    NotificationManager manager;
+
+    Song s;
+
     public MediaPlayer mediaPlayer;
     private int position = 0;
     NotificationCompat.Builder builder;
     PendingIntent pendingActivityIntent;
     Intent activityIntent;
     Intent intent;
+
+    PendingIntent pendingPrevIntent;
+
+    PendingIntent pendingPauseIntent;
+
+    PendingIntent pendingNextIntent;
+
+    NotificationChannel channel;
 
     PendingIntent pendingPlayIntent;
 
@@ -66,7 +76,7 @@ public class MusicService extends Service {
 
     public String isState() {
 
-        if(mediaPlayer==null){
+        if (mediaPlayer == null) {
             return "Stopped";
         }
         if (mediaPlayer.isPlaying()) {
@@ -76,20 +86,18 @@ public class MusicService extends Service {
         }
     }
 
-    public void setForegroundEnabled(boolean value){
-        notification=value;
-
-        if(value) {
+    public void setForegroundEnabled(boolean value) {
+        notification = value;
+        if (value) {
+            updateNotification();
             if (builder != null) {
                 startForeground(1, builder.build());
             }
+        } else {
+            stopForeground(true);
         }
-        else{
-                stopForeground(true);
-            }
-        Log.d(TAG, "setForegroundEnabled: "+value);
+        Log.d(TAG, "setForegroundEnabled: " + value);
     }
-
 
 
     public class LocalBinder extends Binder {
@@ -117,11 +125,13 @@ public class MusicService extends Service {
     }
 
     public void onPlay() {
-        if(mediaPlayer==null){
+        if (mediaPlayer == null) {
             createMediaPlayer();
-        }
-        if (!mediaPlayer.isPlaying()) {
+        } else if (!mediaPlayer.isPlaying()) {
             mediaPlayer.start();
+        }
+        else if (notification) {
+            updateNotification();
         }
 
     }
@@ -129,6 +139,9 @@ public class MusicService extends Service {
     public void onPause() {
         if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
+            if (notification) {
+                updateNotification();
+            }
         }
     }
 
@@ -141,6 +154,9 @@ public class MusicService extends Service {
             }
             createMediaPlayer();
             mediaPlayer.start();
+            if (notification) {
+                updateNotification();
+            }
         }
     }
 
@@ -152,17 +168,22 @@ public class MusicService extends Service {
                 position = songs.size() - 1;
             }
             createMediaPlayer();
+            createNotificationChannel();
             mediaPlayer.start();
+        }
+        else if (notification) {
+            updateNotification();
         }
     }
 
     public void onStop() {
         if (mediaPlayer != null) {
             mediaPlayer.release();
-            mediaPlayer=null;
+            mediaPlayer = null;
         }
         stopForeground(true);
         stopSelf();
+
 
     }
 
@@ -177,58 +198,78 @@ public class MusicService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
+        if (intent == null)
+            return START_NOT_STICKY;
+
         createNotificationChannel();
 
-        if(mediaPlayer==null){
+        Log.d(TAG, "onStartCommand: " + notification);
+
+
+        if (mediaPlayer == null) {
             createMediaPlayer();
         }
 
-
-        if (!mediaPlayer.isPlaying()) {
-            mediaPlayer.start();
-        }
-
-        if (intent != null && intent.getAction() != null) {
+        if (intent.getAction() != null) {
             String action = intent.getAction();
             if (ACTION_PREVIOUS.equals(action)) {
                 onPrev();
-                sendUIUpdate();
             } else if (ACTION_PAUSE.equals(action)) {
-                if (mediaPlayer.isPlaying()) {
-                    onPause();
-                    sendUIUpdate();
-                } else if (!mediaPlayer.isPlaying()) {
-                    onPlay();
-                    sendUIUpdate();
-                }
+                onPause();
+
             } else if (ACTION_NEXT.equals(action)) {
                 onNext();
-                sendUIUpdate();
 
             }
         }
 
         notification = intent.getBooleanExtra("is_foreground", true);
 
-        PendingIntent pendingPrevIntent = PendingIntent.getService(this, 1, new Intent(this, MusicService.class).setAction(ACTION_PREVIOUS), PendingIntent.FLAG_IMMUTABLE);
+        pendingPrevIntent = PendingIntent.getService(this, 1, new Intent(this, MusicService.class).setAction(ACTION_PREVIOUS), PendingIntent.FLAG_IMMUTABLE);
 
 
-        PendingIntent pendingPauseIntent = PendingIntent.getService(this, 2, new Intent(this, MusicService.class).setAction(ACTION_PAUSE), PendingIntent.FLAG_IMMUTABLE);
+        pendingPauseIntent = PendingIntent.getService(this, 2, new Intent(this, MusicService.class).setAction(ACTION_PAUSE), PendingIntent.FLAG_IMMUTABLE);
 
 
-        PendingIntent pendingNextIntent = PendingIntent.getService(this, 4, new Intent(this, MusicService.class).setAction(ACTION_NEXT), PendingIntent.FLAG_IMMUTABLE);
+        pendingNextIntent = PendingIntent.getService(this, 3, new Intent(this, MusicService.class).setAction(ACTION_NEXT), PendingIntent.FLAG_IMMUTABLE);
 
 
-        pendingPlayIntent = PendingIntent.getService(this, 3, new Intent(this, MusicService.class).setAction(ACTION_PAUSE), PendingIntent.FLAG_IMMUTABLE);
+//        pendingPlayIntent = PendingIntent.getService(this, 3, new Intent(this, MusicService.class).setAction(ACTION_PAUSE), PendingIntent.FLAG_IMMUTABLE);
 
         activityIntent = new Intent(this, MainActivity.class);
-        activityIntent.setAction(ACTION_PREVIOUS);
         pendingActivityIntent = PendingIntent.getActivity(
                 this, 0, activityIntent,
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
-        Song s = getCurrentSong();
+        if (notification) {
+            Log.d(TAG, "onStartCommand: " + builder);
+            startForeground(1, builder.build());
+        } else {
+            stopForeground(true);
+        }
+
+        if (!mediaPlayer.isPlaying()) {
+            onPlay();
+        }
+
+        return flags;
+    }
+
+
+    private void createNotificationChannel() {
+      channel = new NotificationChannel(
+                CHANNEL_ID, "Music Service", NotificationManager.IMPORTANCE_LOW
+        );
+       manager = getSystemService(NotificationManager.class);
+        if (manager != null)
+            manager.createNotificationChannel(channel);
+    }
+
+    private void updateNotification(){
+
+        s=getCurrentSong();
 
         builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(s.name)
@@ -239,27 +280,10 @@ public class MusicService extends Service {
                 .addAction(R.drawable.skip_next_24px, "Next", pendingNextIntent)
                 .setContentIntent(pendingActivityIntent);
 
-        if (notification) {
-            startForeground(1, builder.build());
-        } else {
-            stopForeground(true);
-        }
+        createNotificationChannel();
+        manager.notify(1,builder.build());
 
 
-       return START_STICKY;
-}
-
-
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID, "Music Service", NotificationManager.IMPORTANCE_LOW
-            );
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null)
-                manager.createNotificationChannel(channel);
-        }
     }
 
     @Nullable

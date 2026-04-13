@@ -76,32 +76,24 @@ public class SecondActivity extends AppCompatActivity {
         binding.btnPlay.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onPlay();
-                binding.btnPause.setVisibility(VISIBLE);
-                binding.btnPlay.setVisibility(GONE);
             }
         });
 
         binding.btnPause.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onPause();
-                binding.btnPause.setVisibility(GONE);
-                binding.btnPlay.setVisibility(VISIBLE);
             }
         });
 
         binding.btnNext.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onNext();
-                binding.btnPause.setVisibility(VISIBLE);
-                binding.btnPlay.setVisibility(GONE);
             }
         });
 
         binding.btnPrev.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onPrev();
-                binding.btnPause.setVisibility(VISIBLE);
-                binding.btnPlay.setVisibility(GONE);
             }
         });
 
@@ -163,6 +155,5 @@ public class SecondActivity extends AppCompatActivity {
             binding.currentSong.setText(s.toString());
         }
     }
-
 
 }

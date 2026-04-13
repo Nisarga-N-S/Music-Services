@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     MusicService mService;
     boolean mBound = false;
     Intent serviceIntent;
+    Song s;
 
     boolean isSecondActivity;
 
@@ -54,17 +55,17 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        updateSongUI();
 
         serviceIntent = new Intent(this, MusicService.class);
         Log.d(TAG, "Status "+isForeground);
-        isForeground=binding.swtchbutton.isChecked();
+        Log.d(TAG, "onCreate: "+serviceIntent);
+
 
         receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted,isState) -> {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
-            binding.state.setText(getString(R.string.state) + isState);
+            binding.state.setText(String.format(getString(R.string.state) + isState));
             updateSongUI();
             if(isPlaying){
                 binding.btnPause.setVisibility(VISIBLE);
@@ -89,24 +90,27 @@ public class MainActivity extends AppCompatActivity {
         }
 
         binding.swtchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            Log.d(TAG, "onCreate: "+isChecked);
             if(mBound && mService!=null){
                 mService.setForegroundEnabled(isChecked);
             }
+
         });
 
         binding.btnStart.setOnClickListener(v -> {
+            isForeground=binding.swtchbutton.isChecked();
             serviceIntent.putExtra("is_foreground",isForeground);
-            if(isForeground){
+            if (isForeground){
                 startForegroundService(serviceIntent);
-            }else{
+            }
+            else {
                 startService(serviceIntent);
             }
-            binding.btnPause.setVisibility(VISIBLE);
 
         });
 
         binding.btnStop.setOnClickListener(v -> {
-            binding.state.setText(getString(R.string.state) + mService.isState());
+            binding.state.setText(String.format(getString(R.string.state) + mService.isState()));
             Log.d(TAG, "onCreate: "+mService.isState());
             mService.onStop();
             binding.btnPlay.setVisibility(VISIBLE);
@@ -115,34 +119,24 @@ public class MainActivity extends AppCompatActivity {
         binding.btnPlay.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onPlay();
-                binding.btnPause.setVisibility(VISIBLE);
-                binding.btnNext.setVisibility(VISIBLE);
             }
         });
 
         binding.btnPause.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onPause();
-                binding.btnPause.setVisibility(GONE);
-                binding.btnPlay.setVisibility(VISIBLE);
             }
         });
 
         binding.btnNext.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onNext();
-                if(mService.mediaPlayer!=null) {
-                    binding.btnPause.setVisibility(VISIBLE);
-                    binding.btnPlay.setVisibility(GONE);
-                }
             }
         });
 
         binding.btnPrev.setOnClickListener(v -> {
             if (mBound && mService != null) {
                 mService.onPrev();
-                binding.btnPause.setVisibility(VISIBLE);
-                binding.btnPlay.setVisibility(GONE);
             }
         });
         binding.materialButton.setOnClickListener(v -> {
@@ -167,10 +161,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
     @Override
     protected void onResume() {
         super.onResume();
-            bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
+        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
         IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
         registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
     }
@@ -199,11 +194,14 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             mService = binder.getService();
+            Log.d(TAG, "onServiceConnected: "+mService.notification);
             mBound = true;
             binding.swtchbutton.setChecked(mService.notification);
             updateSongList();
             updateSongUI();
+
         }
+
 
         public void onServiceDisconnected(ComponentName name) {
             mBound = false;
@@ -212,9 +210,10 @@ public class MainActivity extends AppCompatActivity {
 
     void updateSongUI() {
         if (mService != null) {
-            Song s = mService.getCurrentSong();
+          s = mService.getCurrentSong();
             binding.currentSong.setText(s.toString());
         }
+        Log.d(TAG, "updateSongUI: "+ s);
     }
 
     void updateSongList() {
@@ -224,5 +223,6 @@ public class MainActivity extends AppCompatActivity {
             binding.songList.setAdapter(adapter);
         }
     }
+
 
 }
