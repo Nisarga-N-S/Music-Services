@@ -95,9 +95,12 @@ public class SecondActivity extends AppCompatActivity {
             }
         });
 
-        binding.materialButton.setOnClickListener(v -> {
+        binding.btnFirstactivity.setOnClickListener(v -> {
             serviceIntent = new Intent(this, MainActivity.class);
             startActivity(serviceIntent);
+            isFirstActivity=true;
+            Log.d(TAG, "onCreate: "+mService.notification);
+            Log.d(TAG, "onCreate: "+"moves to first activity");
             Log.d(TAG, "onCreate: "+isFirstActivity);
             finish();
         });
@@ -128,6 +131,9 @@ public class SecondActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        if(!isFirstActivity){
+            mService.onStop();
+        }
         if (mBound) {
             unbindService(connection);
             unregisterReceiver(receiver);

@@ -7,7 +7,7 @@
     <string name="btn_start">Start Music</string>
     <string name="btn_stop">Stop Music</string>
     <string name="second_activity">Go to Second Activity</string>
-    <string name="song_list">Song List(tao to play)</string>
+    <string name="song_list">Song List(tap to play)</string>
     <string name="foreground">Run as Foreground Service</string>
     <string name="playback">Playback Controls (Bound Service)</string>
     <string name="service_control">Started Service Controls</string>

@@ -43,6 +43,11 @@ public class MainActivity extends AppCompatActivity {
     boolean isForeground;
     MusicUpdateReceiver receiver;
 
+    public static final String ACTION_STOP = "ACTION_STOP";
+
+    public static final String ACTION_START = "ACTION_START";
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,10 +60,19 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-
         serviceIntent = new Intent(this, MusicService.class);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    100
+            );
+        }
+
+
         Log.d(TAG, "Status "+isForeground);
-        Log.d(TAG, "onCreate: "+serviceIntent);
+        Log.d(TAG, "mainactivity: "+serviceIntent);
 
 
         receiver = new MusicUpdateReceiver((current, duration, isPlaying, formatted,isState) -> {
@@ -77,46 +91,33 @@ public class MainActivity extends AppCompatActivity {
                 binding.btnPlay.setVisibility(VISIBLE);
             }
 
-
-
         });
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(
-                    this,
-                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                    100
-            );
-        }
-
-        binding.swtchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            Log.d(TAG, "onCreate: "+isChecked);
+        binding.switchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if(mBound && mService!=null){
                 mService.setForegroundEnabled(isChecked);
+                Log.d(TAG, "onCreate: "+isChecked);
             }
 
         });
 
         binding.btnStart.setOnClickListener(v -> {
-            isForeground=binding.swtchbutton.isChecked();
+            isForeground=binding.switchbutton.isChecked();
             serviceIntent.putExtra("is_foreground",isForeground);
+//            serviceIntent.setAction(ACTION_START);
             if (isForeground){
                 startForegroundService(serviceIntent);
             }
             else {
                 startService(serviceIntent);
             }
-            if (mBound && mService != null) {
-                mService.onPlay();
-            }
 
         });
 
         binding.btnStop.setOnClickListener(v -> {
-            if (mBound && mService != null) {
-                mService.onStop();
-            }
-//            binding.btnPlay.setVisibility(VISIBLE);
+//            serviceIntent.setAction(ACTION_STOP);
+//            startService(serviceIntent);
+            mService.onStop();
             binding.state.setText(String.format(getString(R.string.state) + mService.isState()));
         });
 
@@ -143,9 +144,9 @@ public class MainActivity extends AppCompatActivity {
                 mService.onPrev();
             }
         });
-        binding.materialButton.setOnClickListener(v -> {
+        binding.btnSecondactivity.setOnClickListener(v -> {
             isSecondActivity=true;
-
+            Log.d(TAG, "onCreate: "+mService.notification +"firstactivity");
             Intent intent=new Intent(this,SecondActivity.class);
             startActivity(intent);
 
@@ -165,7 +166,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -179,9 +179,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if(!isSecondActivity) {
-                mService.onStop();
-        }
         if (mBound) {
             unbindService(connection);
             unregisterReceiver(receiver);
@@ -189,30 +186,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
     }
-
-    ServiceConnection connection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
-                mService = binder.getService();
-                Log.d(TAG, "onServiceConnected: " + mService.notification);
-                mBound = true;
-                binding.swtchbutton.setChecked(mService.notification);
-            Log.d(TAG, "onServiceConnected: "+mService.notification);
-
-                updateSongList();
-                updateSongUI();
-
-        }
-
-
-        public void onServiceDisconnected(ComponentName name) {
-            mBound = false;
-        }
-    };
 
     void updateSongUI() {
         if (mService != null) {
@@ -228,6 +206,23 @@ public class MainActivity extends AppCompatActivity {
             binding.songList.setAdapter(adapter);
         }
     }
+
+    ServiceConnection connection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+            binding.switchbutton.setChecked(mService.notification);
+            Log.d(TAG, "onServiceConnected: "+mService.notification);
+            updateSongList();
+            updateSongUI();
+
+        }
+
+        public void onServiceDisconnected(ComponentName name) {
+            mBound = false;
+        }
+    };
 
 
 }
