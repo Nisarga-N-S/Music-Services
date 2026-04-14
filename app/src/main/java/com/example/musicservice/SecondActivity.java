@@ -12,6 +12,7 @@ import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.widget.SeekBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -21,15 +22,15 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.musicservice.databinding.ActivitySecondBinding;
 
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-
 public class SecondActivity extends AppCompatActivity {
 
     ActivitySecondBinding binding;
     MusicService mService;
     boolean mBound = false;
     Intent serviceIntent;
+
+    public static final String TAG = "Music_service--->";
+    boolean isFirstActivity;
     MusicUpdateReceiver receiver;
 
     @Override
@@ -58,7 +59,7 @@ public class SecondActivity extends AppCompatActivity {
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
             }
-            binding.state.setText(getString(R.string.state) + isState);
+            binding.state.setText(String.format(getString(R.string.state) + isState));
 
         });
 
@@ -97,6 +98,7 @@ public class SecondActivity extends AppCompatActivity {
         binding.materialButton.setOnClickListener(v -> {
             serviceIntent = new Intent(this, MainActivity.class);
             startActivity(serviceIntent);
+            Log.d(TAG, "onCreate: "+isFirstActivity);
             finish();
         });
 
@@ -119,7 +121,7 @@ public class SecondActivity extends AppCompatActivity {
         super.onResume();
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
         IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
-        registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
+            registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
     }
 
 

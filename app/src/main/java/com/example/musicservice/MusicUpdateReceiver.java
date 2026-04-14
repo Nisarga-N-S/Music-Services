@@ -24,7 +24,7 @@ public class MusicUpdateReceiver extends BroadcastReceiver {
 
         int current = intent.getIntExtra("current", 0);
         int duration = intent.getIntExtra("duration", 0);
-        boolean isPlaying = intent.getBooleanExtra("isPlaying", false);
+        boolean isPlaying = intent.getBooleanExtra("isPlaying", true);
         String isState = intent.getStringExtra("isState");
         String formatted = formatTime(current) + "/" + formatTime(duration);
         listener.onUpdate(current, duration, isPlaying, formatted, isState);

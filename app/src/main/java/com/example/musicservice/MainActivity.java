@@ -106,14 +106,18 @@ public class MainActivity extends AppCompatActivity {
             else {
                 startService(serviceIntent);
             }
+            if (mBound && mService != null) {
+                mService.onPlay();
+            }
 
         });
 
         binding.btnStop.setOnClickListener(v -> {
+            if (mBound && mService != null) {
+                mService.onStop();
+            }
+//            binding.btnPlay.setVisibility(VISIBLE);
             binding.state.setText(String.format(getString(R.string.state) + mService.isState()));
-            Log.d(TAG, "onCreate: "+mService.isState());
-            mService.onStop();
-            binding.btnPlay.setVisibility(VISIBLE);
         });
 
         binding.btnPlay.setOnClickListener(v -> {
@@ -165,7 +169,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
+        if(!mBound) {
+            bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
+        }
         IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
         registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
     }
@@ -174,9 +180,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         if(!isSecondActivity) {
-            if (mBound && mService != null) {
                 mService.onStop();
-            }
         }
         if (mBound) {
             unbindService(connection);
@@ -193,12 +197,14 @@ public class MainActivity extends AppCompatActivity {
     ServiceConnection connection = new ServiceConnection() {
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
-            mService = binder.getService();
+                mService = binder.getService();
+                Log.d(TAG, "onServiceConnected: " + mService.notification);
+                mBound = true;
+                binding.swtchbutton.setChecked(mService.notification);
             Log.d(TAG, "onServiceConnected: "+mService.notification);
-            mBound = true;
-            binding.swtchbutton.setChecked(mService.notification);
-            updateSongList();
-            updateSongUI();
+
+                updateSongList();
+                updateSongUI();
 
         }
 
