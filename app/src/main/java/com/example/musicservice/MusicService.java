@@ -1,7 +1,5 @@
 package com.example.musicservice;
-import static com.example.musicservice.MainActivity.ACTION_START;
-import static com.example.musicservice.MainActivity.ACTION_STOP;
-
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -26,9 +24,11 @@ public class MusicService extends Service {
     public static final String ACTION_PAUSE = "ACTION_PAUSE";
     public static final String ACTION_NEXT = "ACTION_NEXT";
 
+    public static final String ACTION_STOP = "ACTION_STOP";
+
     public static final String ACTION_PLAY = "ACTION_PLAY";
 
-    boolean notification;
+    boolean notification=true;
 
     public static final String TAG = "Music_service--->";
 
@@ -41,6 +41,7 @@ public class MusicService extends Service {
     NotificationCompat.Builder builder;
     PendingIntent pendingActivityIntent;
     Intent activityIntent;
+    Intent intent;
 
     String state;
 
@@ -57,6 +58,7 @@ public class MusicService extends Service {
     private final IBinder binder = new LocalBinder();
 
     ArrayList<Song> songs = new ArrayList<>();
+
     private final Handler handler = new Handler();
     private final Runnable updateRunnable = new Runnable() {
         @Override
@@ -66,7 +68,6 @@ public class MusicService extends Service {
         }
     };
 
-
     @Override
     public void onCreate() {
         super.onCreate();
@@ -75,71 +76,61 @@ public class MusicService extends Service {
         songs.add(new Song("E Santhelu", "Sundaranga Jaana", "Shreya Ghoshal", R.raw.song3));
         songs.add(new Song("Sahib", "Sahib", "Aditya Rikahari", R.raw.song4));
 
-        state = "Stopped";
+        state="Stopped";
+        createNotificationChannel();
         handler.post(updateRunnable);
         Log.d(TAG, "onCreate: On create is service started service");
     }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        createNotificationChannel();
 
         if (intent == null)
             return START_NOT_STICKY;
-
         Log.d(TAG, "onStartCommand: Onstart command started service");
 
+        String action = intent.getAction();
 
-        if (mediaPlayer == null) {
-            createMediaPlayer();
-        }
-
-
-
-        if (intent.getAction() != null) {
-            String action = intent.getAction();
-
+        if (action != null) {
             switch (action) {
+
+                case ACTION_PLAY:
+                    onPlay();
+                    break;
+
+                case ACTION_PAUSE:
+                    Log.d(TAG, "onStartCommand: "+"Onpauseclicked");
+                    onPause();
+                    break;
+
+                case ACTION_NEXT:
+                    onNext();
+                    break;
 
                 case ACTION_PREVIOUS:
                     onPrev();
-                    sendUIUpdate();
                     break;
-                case ACTION_PAUSE:
-                    onPause();
-                    sendUIUpdate();
-                    Log.d(TAG, "onStartCommand: " + ACTION_PAUSE);
-                    break;
-                case ACTION_PLAY:
-                    onPlay();
-                    sendUIUpdate();
-                    break;
-                case ACTION_NEXT:
-                    onNext();
-                    Log.d(TAG, "onStartCommand: "+"onNext called");
-                    sendUIUpdate();
-                    break;
+
                 case ACTION_STOP:
                     onStop();
-                    break;
+                    return START_NOT_STICKY;
             }
+        }else{
+            playMusic();
+        }
+        if (intent.hasExtra("is_foreground")) {
+
+            notification = intent.getBooleanExtra("is_foreground", true);
         }
 
+        Log.d(TAG, "onStartCommand: " + notification);
 
-        notification = intent.getBooleanExtra("is_foreground", false);
 
         if (notification) {
             updateNotification();
-            if (builder != null) {
-                startForeground(1, builder.build());
-                Log.d(TAG, "onStartCommand: " + "started foreground service");
+                if (builder != null) {
+                    startForeground(1, builder.build());
+                }
             }
-        }
-
-        if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
-            onPlay();
-        }
-
 
         return START_STICKY;
     }
@@ -152,43 +143,33 @@ public class MusicService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
-        return super.onUnbind(intent);
+        Log.d(TAG, "onUnbind: unbinded ");
+        return true;
     }
+
 
     @Override
     public void onDestroy() {
+        onStop();
+        handler.removeCallbacks(updateRunnable);
+        Log.d(TAG, "onDestroy: "+"service destroyed");
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
         }
-        handler.removeCallbacks(updateRunnable);
         super.onDestroy();
     }
 
-    public String isState() {
-        return state;
-    }
-
-    public Song getCurrentSong() {
-        return songs.get(position);
-    }
-
-    private void createMediaPlayer() {
-        Log.d(TAG, "createMediaPlayer: " + mediaPlayer);
-        mediaPlayer = MediaPlayer.create(this, songs.get(position).resId);
-        mediaPlayer.setOnCompletionListener(mp ->
-                onNext());
-    }
-
     public void sendUIUpdate() {
-        Intent intent = new Intent(ACTION_UPDATE_UI);
-        if (mediaPlayer != null) {
+        intent = new Intent(ACTION_UPDATE_UI);
+        if(mediaPlayer!=null){
             intent.putExtra("current", mediaPlayer.getCurrentPosition());
             intent.putExtra("duration", mediaPlayer.getDuration());
             intent.putExtra("isPlaying", mediaPlayer.isPlaying());
             intent.putExtra("isState", isState());
-        } else {
-            intent.putExtra("current", 0);
+        }
+        else{
+            intent.putExtra("current",0 );
             intent.putExtra("duration", 0);
             intent.putExtra("isPlaying", false);
             intent.putExtra("isState", isState());
@@ -196,21 +177,38 @@ public class MusicService extends Service {
         sendBroadcast(intent);
     }
 
+    public String isState() {
+        return state;
+    }
+
+    public void playMusic() {
+
+        if (mediaPlayer == null) {
+            createMediaPlayer();
+        }
+
+        if (mediaPlayer != null) {
+            mediaPlayer.start();
+        }
+        state="Playing";
+
+
+        if (notification)
+            updateNotification();
+       sendUIUpdate();
+    }
+
+
     public void setForegroundEnabled(boolean value) {
         notification = value;
-        createNotificationChannel();
         if (value) {
-            updateNotification();
-            if (builder != null) {
-                startForeground(1, builder.build());
-                Log.d(TAG, "setForegroundEnabled: " + "service started");
-            }
+            updateAll();
         } else {
             stopForeground(true);
         }
         Log.d(TAG, "setForegroundEnabled: " + value);
-
     }
+
 
     public class LocalBinder extends Binder {
         public MusicService getService() {
@@ -218,27 +216,35 @@ public class MusicService extends Service {
         }
     }
 
+    public Song getCurrentSong() {
+        return songs.get(position);
+    }
+
+
+    private void createMediaPlayer() {
+        mediaPlayer = MediaPlayer.create(this, songs.get(position).resId);
+        mediaPlayer.setOnCompletionListener(mp ->
+                onNext());
+    }
+
     public void onPlay() {
-        if (mediaPlayer == null) {
+        if(mediaPlayer==null) {
             createMediaPlayer();
         }
         mediaPlayer.start();
-        state = "Playing";
-        if (notification) {
-            updateNotification();
-        }
+        state="Playing";
+        updateAll();
 
     }
 
     public void onPause() {
-        state = "Paused";
-        if (mediaPlayer != null) {
+        state="Paused";
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
         }
-        Log.d(TAG, "onPause: " + "onpause called");
-        if (notification) {
-            updateNotification();
-        }
+            Log.d(TAG, "onPause: "+"song paused");
+           updateAll();
+
     }
 
     public void onNext() {
@@ -250,11 +256,9 @@ public class MusicService extends Service {
             }
             createMediaPlayer();
             mediaPlayer.start();
-            state = "Playing";
-            if (notification) {
-                updateNotification();
-            }
+            state="Playing";
         }
+        updateAll();
     }
 
     public void onPrev() {
@@ -264,21 +268,17 @@ public class MusicService extends Service {
             if (position < 0) {
                 position = songs.size() - 1;
             }
-            state = "Playing";
+            state="Playing";
             createMediaPlayer();
             mediaPlayer.start();
         }
-        if (notification) {
-            updateNotification();
-        }
+        updateAll();
     }
 
     public void onStop() {
         state = "Stopped";
         if (mediaPlayer != null) {
-            if (mediaPlayer.isPlaying()) {
-                mediaPlayer.stop();
-            }
+            mediaPlayer.stop();
             mediaPlayer.release();
             mediaPlayer = null;
         }
@@ -286,20 +286,27 @@ public class MusicService extends Service {
         stopSelf();
     }
 
+    private void updateAll() {
+        sendUIUpdate();
+        if (notification) {
+            updateNotification();
+        }
+    }
+
 
     private void setNotification() {
 
 
-        pendingPrevIntent = PendingIntent.getService(this, 1, new Intent(this, MusicService.class).setAction(ACTION_PREVIOUS), PendingIntent.FLAG_IMMUTABLE);
+        pendingPrevIntent = PendingIntent.getService(this, 101, new Intent(this, MusicService.class).setAction(ACTION_PREVIOUS), PendingIntent.FLAG_IMMUTABLE);
 
 
-        pendingPauseIntent = PendingIntent.getService(this, 2, new Intent(this, MusicService.class).setAction(ACTION_PAUSE), PendingIntent.FLAG_IMMUTABLE);
+        pendingPauseIntent = PendingIntent.getService(this, 102, new Intent(this, MusicService.class).setAction(ACTION_PAUSE), PendingIntent.FLAG_IMMUTABLE);
 
 
-        pendingPlayIntent = PendingIntent.getService(this, 4, new Intent(this, MusicService.class).setAction(ACTION_PLAY), PendingIntent.FLAG_IMMUTABLE);
+        pendingNextIntent = PendingIntent.getService(this, 103, new Intent(this, MusicService.class).setAction(ACTION_NEXT), PendingIntent.FLAG_IMMUTABLE);
 
 
-        pendingNextIntent = PendingIntent.getService(this, 3, new Intent(this, MusicService.class).setAction(ACTION_NEXT), PendingIntent.FLAG_IMMUTABLE);
+        pendingPlayIntent = PendingIntent.getService(this, 104, new Intent(this, MusicService.class).setAction(ACTION_PLAY), PendingIntent.FLAG_IMMUTABLE);
 
         activityIntent = new Intent(this, MainActivity.class);
         pendingActivityIntent = PendingIntent.getActivity(
@@ -307,17 +314,6 @@ public class MusicService extends Service {
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
     }
-
-
-    private void createNotificationChannel() {
-        channel = new NotificationChannel(
-                CHANNEL_ID, "Music Service", NotificationManager.IMPORTANCE_LOW
-        );
-        manager = getSystemService(NotificationManager.class);
-        if (manager != null)
-            manager.createNotificationChannel(channel);
-    }
-
     private void updateNotification() {
 
         setNotification();
@@ -328,23 +324,24 @@ public class MusicService extends Service {
                 .setContentTitle(s.name)
                 .setContentText(s.film + " - " + s.artist)
                 .setSmallIcon(R.drawable.library_music_24px)
-                .addAction(R.drawable.skip_previous_24px, "Prev", pendingPrevIntent)
-//        if (mediaPlayer.isPlaying()) {
-           .addAction(R.drawable.play_pause_24px, "Pause", pendingPauseIntent)
-//            Log.d(TAG, "updateNotification: " + pendingPauseIntent);
-//        }
-//        } else {
-//            builder.addAction(R.drawable.play_pause_24px, "Play", pendingPlayIntent);
-//        }
+                .addAction(R.drawable.skip_previous_24px, "Prev", pendingPrevIntent);
 
-           .addAction(R.drawable.skip_next_24px, "Next", pendingNextIntent);
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            builder.addAction(R.drawable.play_pause_24px, "Pause", pendingPauseIntent);
+        } else {
+            builder.addAction(R.drawable.play_pause_24px, "Play", pendingPlayIntent);
+        }
+
+        builder.addAction(R.drawable.skip_next_24px, "Next", pendingNextIntent);
 
         manager.notify(1, builder.build());
     }
-
-
+    private void createNotificationChannel() {
+        channel = new NotificationChannel(
+                CHANNEL_ID, "Music Service", NotificationManager.IMPORTANCE_LOW
+        );
+        manager = getSystemService(NotificationManager.class);
+        if (manager != null)
+            manager.createNotificationChannel(channel);
+    }
 }
-
-
-
-

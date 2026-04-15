@@ -3,17 +3,16 @@ package com.example.musicservice;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
+import static com.example.musicservice.MusicService.TAG;
+
 import android.Manifest;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
+import android.content.*;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.SeekBar;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
@@ -29,15 +28,17 @@ public class SecondActivity extends AppCompatActivity {
     boolean mBound = false;
     Intent serviceIntent;
 
-    public static final String TAG = "Music_service--->";
-    boolean isFirstActivity;
     MusicUpdateReceiver receiver;
+
+    boolean isfirstActivity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         binding = ActivitySecondBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -50,17 +51,17 @@ public class SecondActivity extends AppCompatActivity {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
+            binding.state.setText(String.format("State: " + isState));
+
             updateSongUI();
+
             if (isPlaying) {
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
-
             } else {
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
             }
-            binding.state.setText(String.format(getString(R.string.state) + isState));
-
         });
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -71,74 +72,68 @@ public class SecondActivity extends AppCompatActivity {
             );
         }
 
-        binding.btnPlay.setOnClickListener(v -> {
-            if (mBound && mService != null) {
-                mService.onPlay();
-            }
-        });
-
-        binding.btnPause.setOnClickListener(v -> {
-            if (mBound && mService != null) {
-                mService.onPause();
-            }
-        });
-
-        binding.btnNext.setOnClickListener(v -> {
-            if (mBound && mService != null) {
-                mService.onNext();
-            }
-        });
-
-        binding.btnPrev.setOnClickListener(v -> {
-            if (mBound && mService != null) {
-                mService.onPrev();
-            }
-        });
+        binding.btnPlay.setOnClickListener(v -> sendAction(MusicService.ACTION_PLAY));
+        binding.btnPause.setOnClickListener(v -> sendAction(MusicService.ACTION_PAUSE));
+        binding.btnNext.setOnClickListener(v -> sendAction(MusicService.ACTION_NEXT));
+        binding.btnPrev.setOnClickListener(v -> sendAction(MusicService.ACTION_PREVIOUS));
 
         binding.btnFirstactivity.setOnClickListener(v -> {
-            serviceIntent = new Intent(this, MainActivity.class);
-            startActivity(serviceIntent);
-            isFirstActivity=true;
-            Log.d(TAG, "onCreate: "+mService.notification);
-            Log.d(TAG, "onCreate: "+"moves to first activity");
-            Log.d(TAG, "onCreate: "+isFirstActivity);
+            isfirstActivity=true;
+            startActivity(new Intent(this, MainActivity.class));
             finish();
         });
 
         binding.seekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-            }
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {}
 
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
+            public void onStartTrackingTouch(SeekBar seekBar) {}
 
             public void onStopTrackingTouch(SeekBar seekBar) {
-                if (mService != null && mService.mediaPlayer != null)
+                if (mService != null && mService.mediaPlayer != null) {
                     mService.mediaPlayer.seekTo(seekBar.getProgress());
+                }
             }
         });
+    }
+
+    private void sendAction(String action) {
+        Intent intent = new Intent(this, MusicService.class);
+        intent.setAction(action);
+        startService(intent);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
-        IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
-            registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
-    }
 
+        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
+
+        registerReceiver(receiver,
+                new IntentFilter(MusicService.ACTION_UPDATE_UI),
+                Context.RECEIVER_EXPORTED);
+
+        if (mService != null) {
+            updateSongUI();
+        }
+    }
 
     @Override
     protected void onStop() {
-        super.onStop();
-        if(!isFirstActivity){
+
+        if(!isfirstActivity){
             mService.onStop();
         }
+        super.onStop();
+
         if (mBound) {
             unbindService(connection);
-            unregisterReceiver(receiver);
-            mBound = false;
+            Log.d(TAG, "onStop: "+"second activity unbounded from service");
+            mBound= false;
         }
+
+        try {
+            unregisterReceiver(receiver);
+        } catch (Exception ignored) {}
     }
 
     ServiceConnection connection = new ServiceConnection() {
@@ -146,7 +141,16 @@ public class SecondActivity extends AppCompatActivity {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+
             updateSongUI();
+
+            if (mService.mediaPlayer != null && mService.mediaPlayer.isPlaying()) {
+                binding.btnPause.setVisibility(VISIBLE);
+                binding.btnPlay.setVisibility(GONE);
+            } else {
+                binding.btnPause.setVisibility(GONE);
+                binding.btnPlay.setVisibility(VISIBLE);
+            }
         }
 
         public void onServiceDisconnected(ComponentName name) {
@@ -160,5 +164,4 @@ public class SecondActivity extends AppCompatActivity {
             binding.currentSong.setText(s.toString());
         }
     }
-
 }
