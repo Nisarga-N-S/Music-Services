@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
             });
 
         serviceIntent = new Intent(this, MusicService.class);
+        binding.switchbutton.setChecked(true);
         initReceiver();
         requestNotificationPermission();
         setupClickListeners();
