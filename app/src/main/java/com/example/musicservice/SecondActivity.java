@@ -120,9 +120,9 @@ public class SecondActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
 
-        if(!isfirstActivity){
-            mService.onStop();
-        }
+//        if(!isfirstActivity){
+//            mService.onStop();
+//        }
         super.onStop();
 
         if (mBound) {

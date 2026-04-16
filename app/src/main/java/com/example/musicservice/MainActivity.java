@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     Song s;
 
     boolean isSecondActivity;
-    boolean isForeground;
+    boolean isSwitch;
 
     MusicUpdateReceiver receiver;
 
@@ -50,9 +50,6 @@ public class MainActivity extends AppCompatActivity {
             });
 
         serviceIntent = new Intent(this, MusicService.class);
-
-
-        binding.switchbutton.setChecked(true);
         initReceiver();
         requestNotificationPermission();
         setupClickListeners();
@@ -130,6 +127,7 @@ public class MainActivity extends AppCompatActivity {
 
         binding.switchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
             Log.d(TAG, "onCreate: " + isChecked);
+            isSwitch=isChecked;
             if (mBound && mService != null) {
                 mService.setForegroundEnabled(isChecked);
             }
@@ -213,8 +211,8 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             mService = binder.getService();
-
             mBound = true;
+            binding.switchbutton.setChecked(mService.notification);
             updateSongList();
             updateSongUI();
         }
