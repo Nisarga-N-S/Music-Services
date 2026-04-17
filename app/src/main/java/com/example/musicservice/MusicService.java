@@ -1,6 +1,5 @@
 package com.example.musicservice;
 
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -16,6 +15,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class MusicService extends Service {
@@ -30,7 +31,10 @@ public class MusicService extends Service {
 
     public static final String ACTION_PLAY = "ACTION_PLAY";
 
-    boolean notification;
+    boolean notification=true;
+
+
+    String name;
 
     public static final String TAG = "Music_service--->";
 
@@ -45,7 +49,7 @@ public class MusicService extends Service {
     Intent activityIntent;
     Intent intent;
 
-    String state;
+    String state="Stopped";
 
     PendingIntent pendingPrevIntent;
 
@@ -56,6 +60,10 @@ public class MusicService extends Service {
     PendingIntent pendingPlayIntent;
 
     NotificationChannel channel;
+
+    Timer timer;
+
+    TimerTask stopTask;
 
     private final IBinder binder = new LocalBinder();
 
@@ -69,22 +77,19 @@ public class MusicService extends Service {
             handler.postDelayed(this, 1000);
         }
     };
-
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return binder;
+    private  void songList(){
+        songs.add(new Song("Waka Waka", "World Cup", "Shakira", R.raw.wakka));
+        songs.add(new Song("Naane ninanthe", "Brat", "Sid Sriram", R.raw.song2));
+        songs.add(new Song("E Santhelu", "Sundaranga Jaana", "Shreya Ghoshal", R.raw.song3));
+        songs.add(new Song("Sahib", "Sahib", "Aditya Rikahari", R.raw.song4));
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        songs.add(new Song("Waka Waka", "World Cup", "Shakira", R.raw.wakka));
-        songs.add(new Song("Naane ninanthe", "Brat", "Sid Sriram", R.raw.song2));
-        songs.add(new Song("E Santhelu", "Sundaranga Jaana", "Shreya Ghoshal", R.raw.song3));
-        songs.add(new Song("Sahib", "Sahib", "Aditya Rikahari", R.raw.song4));
 
-        state="Stopped";
+        songList();
+
         createNotificationChannel();
         handler.post(updateRunnable);
         Log.d(TAG, "onCreate: On create is service started service");
@@ -92,14 +97,11 @@ public class MusicService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        if (intent == null)
-            return START_NOT_STICKY;
+//        if (intent == null)
+//            return START_NOT_STICKY;
         Log.d(TAG, "onStartCommand: Onstart command started service");
 
-        if (intent.hasExtra("is_foreground")) {
-
-            notification = intent.getBooleanExtra("is_foreground", true);
-        }
+            notification = intent!=null?intent.getBooleanExtra("is_foreground", true):true;
 
         String action = intent.getAction();
 
@@ -116,7 +118,6 @@ public class MusicService extends Service {
             return START_STICKY;
         }
 
-
             switch (action) {
 
                 case ACTION_PLAY:
@@ -124,12 +125,13 @@ public class MusicService extends Service {
                     break;
 
                 case ACTION_PAUSE:
-                    Log.d(TAG, "onStartCommand: "+"Onpauseclicked");
+                    Log.d(TAG, "onStartCommand: " + "Onpauseclicked");
                     onPause();
                     break;
 
                 case ACTION_NEXT:
                     onNext();
+                    Log.d(TAG, "onStartCommand: " + "onNextcalled");
                     break;
 
                 case ACTION_PREVIOUS:
@@ -142,6 +144,19 @@ public class MusicService extends Service {
             }
 
         return START_STICKY;
+    }
+
+    public class LocalBinder extends Binder {
+        public MusicService getService() {
+            return MusicService.this;
+        }
+    }
+
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
     }
 
     @Override
@@ -186,6 +201,7 @@ public class MusicService extends Service {
 
     public void setForegroundEnabled(boolean value) {
         notification = value;
+        Log.d(TAG, "notification "+notification);
         if (value) {
                 updateNotification();
                 if (builder != null) {
@@ -201,12 +217,6 @@ public class MusicService extends Service {
     }
 
 
-    public class LocalBinder extends Binder {
-        public MusicService getService() {
-            return MusicService.this;
-        }
-    }
-
     public Song getCurrentSong() {
         return songs.get(position);
     }
@@ -219,11 +229,11 @@ public class MusicService extends Service {
     }
 
     public void onPlay() {
+        state="Playing";
         if(mediaPlayer==null) {
             createMediaPlayer();
         }
         mediaPlayer.start();
-        state="Playing";
         updateAll();
 
     }
@@ -239,31 +249,46 @@ public class MusicService extends Service {
     }
 
     public void onNext() {
+        boolean shouldPlay="Playing".equals(state);
+
         if (mediaPlayer != null) {
             mediaPlayer.release();
+        }
             position++;
             if (position >= songs.size()) {
                 position = 0;
             }
-            createMediaPlayer();
-            mediaPlayer.start();
-            state="Playing";
-        }
-        updateAll();
+            if(shouldPlay) {
+                createMediaPlayer();
+                mediaPlayer.start();
+                state = "Playing";
+                updateAll();
+            }else{
+                state="Stopped";
+            }
+            Log.d(TAG, "onNext: ");
+
+
     }
 
     public void onPrev() {
+        boolean shouldPlay="Playing".equals(state);
         if (mediaPlayer != null) {
             mediaPlayer.release();
+        }
+
             position--;
             if (position < 0) {
                 position = songs.size() - 1;
             }
-            state="Playing";
+        if(shouldPlay) {
             createMediaPlayer();
             mediaPlayer.start();
+            state = "Playing";
+            updateAll();
+        }else {
+            state = "Stopped";
         }
-        updateAll();
     }
 
     public void onStop() {
@@ -277,6 +302,28 @@ public class MusicService extends Service {
         stopSelf();
         sendUIUpdate();
     }
+
+    public void startDelayedTask(){
+        if(timer!=null){
+            timer.cancel();
+        }
+        timer=new Timer();
+        stopTask=new TimerTask(){
+            @Override
+            public void run() {
+                onStop();
+            }
+        };
+        timer.schedule(stopTask,2000);
+    }
+
+    public void cancelDelayedTask(){
+        if(timer!=null){
+            timer.cancel();
+            timer=null;
+        }
+    }
+
 
     private void updateAll() {
         sendUIUpdate();

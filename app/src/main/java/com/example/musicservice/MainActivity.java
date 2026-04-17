@@ -31,10 +31,6 @@ public class MainActivity extends AppCompatActivity {
     Intent serviceIntent;
 
     Song s;
-
-    boolean isSecondActivity;
-    boolean isSwitch;
-
     MusicUpdateReceiver receiver;
 
     @Override
@@ -48,9 +44,10 @@ public class MainActivity extends AppCompatActivity {
                 v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
                 return insets;
             });
-
+            if(savedInstanceState==null) {
+                binding.switchbutton.setChecked(true);
+            }
         serviceIntent = new Intent(this, MusicService.class);
-        binding.switchbutton.setChecked(true);
         initReceiver();
         requestNotificationPermission();
         setupClickListeners();
@@ -67,19 +64,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStop() {
-//
-        if(!isSecondActivity){
-            mService.onStop();
+    protected void onResume() {
+        super.onResume();
+        if(mBound && mService!=null){
+            mService.cancelDelayedTask();
         }
-        super.onStop();
+    }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        if(mBound && mService!=null){
+            mService.startDelayedTask();
+
+        }
+    }
+
+
+    @Override
+    protected void onStop() {
+        super.onStop();
         if (mBound) {
             unbindService(connection);
-           mBound= false;
+            mBound= false;
             Log.d(TAG, "onStop- unbound from service");
         }
-
         try {
             unregisterReceiver(receiver);
         } catch (Exception ignored) {}
@@ -99,11 +109,8 @@ public class MainActivity extends AppCompatActivity {
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
             binding.state.setText(getString(R.string.state) + isState);
-
             Log.d(TAG, "state " + isState);
-
             updateSongUI();
-
             if (isPlaying) {
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
@@ -124,13 +131,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     private void setupClickListeners() {
 
         binding.switchbutton.setOnCheckedChangeListener((buttonView, isChecked) -> {
             Log.d(TAG, "onCreate: " + isChecked);
-            isSwitch=isChecked;
             if (mBound && mService != null) {
                 mService.setForegroundEnabled(isChecked);
+                mService.notification=isChecked;
             }
         });
 
@@ -184,11 +192,15 @@ public class MainActivity extends AppCompatActivity {
         binding.btnStop.setOnClickListener(v -> sendAction(MusicService.ACTION_STOP));
         binding.btnPlay.setOnClickListener(v -> sendAction(MusicService.ACTION_PLAY));
         binding.btnPause.setOnClickListener(v -> sendAction(MusicService.ACTION_PAUSE));
-        binding.btnNext.setOnClickListener(v -> sendAction(MusicService.ACTION_NEXT));
+        binding.btnNext.setOnClickListener(v ->{
+            Log.d(TAG, "setupClickListeners: "+s.artist+s.name);
+            sendAction(MusicService.ACTION_NEXT);
+          binding.currentSong.setText(mService.name);
+            Log.d(TAG, "setupClickListeners: "+"onNext Triggered");
+        });
         binding.btnPrev.setOnClickListener(v -> sendAction(MusicService.ACTION_PREVIOUS));
 
         binding.btnSecondactivity.setOnClickListener(v -> {
-            isSecondActivity = true;
             startActivity(new Intent(this, SecondActivity.class));
         });
     }
@@ -213,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            Log.d(TAG, "onServiceConnected: "+binding.switchbutton.isChecked());
             binding.switchbutton.setChecked(mService.notification);
             updateSongList();
             updateSongUI();
@@ -229,10 +242,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void updateSongUI() {
-        if (mService != null) {
             s = mService.getCurrentSong();
             binding.currentSong.setText(s.toString());
-        }
     }
 
     void updateSongList() {

@@ -27,10 +27,8 @@ public class SecondActivity extends AppCompatActivity {
     MusicService mService;
     boolean mBound = false;
     Intent serviceIntent;
-
+    Song s;
     MusicUpdateReceiver receiver;
-
-    boolean isfirstActivity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,8 +76,6 @@ public class SecondActivity extends AppCompatActivity {
         binding.btnPrev.setOnClickListener(v -> sendAction(MusicService.ACTION_PREVIOUS));
 
         binding.btnFirstactivity.setOnClickListener(v -> {
-            isfirstActivity=true;
-            startActivity(new Intent(this, MainActivity.class));
             finish();
         });
 
@@ -96,35 +92,35 @@ public class SecondActivity extends AppCompatActivity {
         });
     }
 
-    private void sendAction(String action) {
-        Intent intent = new Intent(this, MusicService.class);
-        intent.setAction(action);
-        startService(intent);
+    @Override
+    protected void onStart() {
+        super.onStart();
+        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
+        IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
+        registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if(mBound && mService!=null){
+            mService.cancelDelayedTask();
 
-        bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
-
-        registerReceiver(receiver,
-                new IntentFilter(MusicService.ACTION_UPDATE_UI),
-                Context.RECEIVER_EXPORTED);
-
-        if (mService != null) {
-            updateSongUI();
         }
     }
 
+    //    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        if(mBound && mService!=null){
+//            mService.startDelayedTask();
+//
+//        }
+//    }
+
     @Override
     protected void onStop() {
-
-//        if(!isfirstActivity){
-//            mService.onStop();
-//        }
         super.onStop();
-
         if (mBound) {
             unbindService(connection);
             Log.d(TAG, "onStop: "+"second activity unbounded from service");
@@ -135,6 +131,14 @@ public class SecondActivity extends AppCompatActivity {
             unregisterReceiver(receiver);
         } catch (Exception ignored) {}
     }
+
+    private void sendAction(String action) {
+        Intent intent = new Intent(this, MusicService.class);
+        intent.setAction(action);
+        startService(intent);
+    }
+
+
 
     ServiceConnection connection = new ServiceConnection() {
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -160,7 +164,7 @@ public class SecondActivity extends AppCompatActivity {
 
     void updateSongUI() {
         if (mService != null) {
-            Song s = mService.getCurrentSong();
+             s = mService.getCurrentSong();
             binding.currentSong.setText(s.toString());
         }
     }
