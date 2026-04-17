@@ -70,13 +70,6 @@ public class MusicService extends Service {
     ArrayList<Song> songs = new ArrayList<>();
 
     private final Handler handler = new Handler();
-    private final Runnable updateRunnable = new Runnable() {
-        @Override
-        public void run() {
-            sendUIUpdate();
-            handler.postDelayed(this, 1000);
-        }
-    };
     private  void songList(){
         songs.add(new Song("Waka Waka", "World Cup", "Shakira", R.raw.wakka));
         songs.add(new Song("Naane ninanthe", "Brat", "Sid Sriram", R.raw.song2));
@@ -97,11 +90,13 @@ public class MusicService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-//        if (intent == null)
-//            return START_NOT_STICKY;
+        if (intent == null)
+            return START_NOT_STICKY;
         Log.d(TAG, "onStartCommand: Onstart command started service");
+        if(intent.hasExtra("is_foreground")) {
 
-            notification = intent!=null?intent.getBooleanExtra("is_foreground", true):true;
+            notification = intent.getBooleanExtra("is_foreground", true);
+        }
 
         String action = intent.getAction();
 
@@ -111,9 +106,8 @@ public class MusicService extends Service {
 
             if (notification) {
                 updateNotification();
-                if (builder != null) {
                     startForeground(1, builder.build());
-                }
+
             }
             return START_STICKY;
         }
@@ -178,6 +172,14 @@ public class MusicService extends Service {
         super.onDestroy();
     }
 
+    public String isState() {
+        return state;
+    }
+
+    public Song getCurrentSong() {
+        return songs.get(position);
+    }
+
     public void sendUIUpdate() {
         intent = new Intent(ACTION_UPDATE_UI);
         if(mediaPlayer!=null){
@@ -195,10 +197,6 @@ public class MusicService extends Service {
         sendBroadcast(intent);
     }
 
-    public String isState() {
-        return state;
-    }
-
     public void setForegroundEnabled(boolean value) {
         notification = value;
         Log.d(TAG, "notification "+notification);
@@ -214,11 +212,6 @@ public class MusicService extends Service {
             }
         }
         Log.d(TAG, "setForegroundEnabled: " + value);
-    }
-
-
-    public Song getCurrentSong() {
-        return songs.get(position);
     }
 
 
@@ -258,8 +251,8 @@ public class MusicService extends Service {
             if (position >= songs.size()) {
                 position = 0;
             }
+        createMediaPlayer();
             if(shouldPlay) {
-                createMediaPlayer();
                 mediaPlayer.start();
                 state = "Playing";
                 updateAll();
@@ -281,14 +274,14 @@ public class MusicService extends Service {
             if (position < 0) {
                 position = songs.size() - 1;
             }
+        createMediaPlayer();
         if(shouldPlay) {
-            createMediaPlayer();
             mediaPlayer.start();
             state = "Playing";
-            updateAll();
         }else {
             state = "Stopped";
         }
+        updateAll();
     }
 
     public void onStop() {
@@ -302,6 +295,14 @@ public class MusicService extends Service {
         stopSelf();
         sendUIUpdate();
     }
+
+    private final Runnable updateRunnable = new Runnable() {
+        @Override
+        public void run() {
+            sendUIUpdate();
+            handler.postDelayed(this, 1000);
+        }
+    };
 
     public void startDelayedTask(){
         if(timer!=null){
@@ -354,6 +355,8 @@ public class MusicService extends Service {
         );
     }
     private void updateNotification() {
+        if(!notification)
+            return;
 
         setNotification();
 

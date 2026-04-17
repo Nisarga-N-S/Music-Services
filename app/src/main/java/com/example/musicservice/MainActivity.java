@@ -138,7 +138,6 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "onCreate: " + isChecked);
             if (mBound && mService != null) {
                 mService.setForegroundEnabled(isChecked);
-                mService.notification=isChecked;
             }
         });
 
@@ -225,8 +224,8 @@ public class MainActivity extends AppCompatActivity {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
-            Log.d(TAG, "onServiceConnected: "+binding.switchbutton.isChecked());
             binding.switchbutton.setChecked(mService.notification);
+            Log.d(TAG, "onServiceConnected: "+binding.switchbutton.isChecked());
             updateSongList();
             updateSongUI();
         }
