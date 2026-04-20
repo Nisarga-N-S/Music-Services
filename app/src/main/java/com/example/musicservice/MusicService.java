@@ -33,9 +33,6 @@ public class MusicService extends Service {
 
     boolean notification=true;
 
-
-    String name;
-
     public static final String TAG = "Music_service--->";
 
     NotificationManager manager;
@@ -90,28 +87,23 @@ public class MusicService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        if (intent == null)
+        if (intent == null) {
             return START_NOT_STICKY;
+        }
         Log.d(TAG, "onStartCommand: Onstart command started service");
         if(intent.hasExtra("is_foreground")) {
 
-            notification = intent.getBooleanExtra("is_foreground", true);
+            notification = intent.getBooleanExtra("is_foreground", notification);
         }
 
         String action = intent.getAction();
 
+//        if(action==null) {
+//            onPlay();
+//        }else {
         if(action==null) {
-
             onPlay();
-
-            if (notification) {
-                updateNotification();
-                    startForeground(1, builder.build());
-
-            }
-            return START_STICKY;
-        }
-
+        }else{
             switch (action) {
 
                 case ACTION_PLAY:
@@ -136,6 +128,14 @@ public class MusicService extends Service {
                     onStop();
                     return START_NOT_STICKY;
             }
+        }
+        if (notification) {
+            updateNotification();
+            if(builder!=null) {
+                startForeground(1, builder.build());
+            }
+
+        }
 
         return START_STICKY;
     }
@@ -201,9 +201,9 @@ public class MusicService extends Service {
         notification = value;
         Log.d(TAG, "notification "+notification);
         if (value) {
-                updateNotification();
-                if (builder != null) {
-                    startForeground(1, builder.build());
+            updateNotification();
+            if (builder != null) {
+                startForeground(1, builder.build());
             }
         } else {
             stopForeground(true);
@@ -235,10 +235,10 @@ public class MusicService extends Service {
         state="Paused";
         if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
-        }
-        Log.d(TAG, "onPause: "+"song paused");
-        updateAll();
 
+        }
+        updateAll();
+        Log.d(TAG, "onPause: "+"song paused");
     }
 
     public void onNext() {
@@ -247,19 +247,19 @@ public class MusicService extends Service {
         if (mediaPlayer != null) {
             mediaPlayer.release();
         }
-            position++;
-            if (position >= songs.size()) {
-                position = 0;
-            }
+        position++;
+        if (position >= songs.size()) {
+            position = 0;
+        }
         createMediaPlayer();
-            if(shouldPlay) {
-                mediaPlayer.start();
-                state = "Playing";
-                updateAll();
-            }else{
-                state="Stopped";
-            }
-            Log.d(TAG, "onNext: ");
+        if(shouldPlay) {
+            mediaPlayer.start();
+            state = "Playing";
+        }else{
+            state="Stopped";
+        }
+        updateAll();
+        Log.d(TAG, "onNext: ");
 
 
     }
@@ -270,10 +270,10 @@ public class MusicService extends Service {
             mediaPlayer.release();
         }
 
-            position--;
-            if (position < 0) {
-                position = songs.size() - 1;
-            }
+        position--;
+        if (position < 0) {
+            position = songs.size() - 1;
+        }
         createMediaPlayer();
         if(shouldPlay) {
             mediaPlayer.start();
@@ -328,9 +328,8 @@ public class MusicService extends Service {
 
     private void updateAll() {
         sendUIUpdate();
-        if (notification) {
+        if(notification)
             updateNotification();
-        }
     }
 
 
@@ -370,13 +369,12 @@ public class MusicService extends Service {
 
         if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             builder.addAction(R.drawable.play_pause_24px, "Pause", pendingPauseIntent);
-        } else {
+        } else if(mediaPlayer!=null && !mediaPlayer.isPlaying()|| state.equals("Stopped")){
             builder.addAction(R.drawable.play_pause_24px, "Play", pendingPlayIntent);
         }
 
         builder.addAction(R.drawable.skip_next_24px, "Next", pendingNextIntent);
         if(manager!=null) {
-
             manager.notify(1, builder.build());
         }
     }

@@ -67,18 +67,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if(mBound && mService!=null){
-            mService.cancelDelayedTask();
+                mService.cancelDelayedTask();
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-
-        if(mBound && mService!=null){
-            mService.startDelayedTask();
-
-        }
+        if (mBound && mService != null) {
+            if(!mService.notification)
+                mService.startDelayedTask();
+            }
     }
 
 
@@ -108,13 +107,13 @@ public class MainActivity extends AppCompatActivity {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
-            binding.state.setText(getString(R.string.state) + isState);
+            binding.state.setText(String.format(getString(R.string.state) + isState));
             Log.d(TAG, "state " + isState);
             updateSongUI();
             if (isPlaying) {
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
-            } else {
+            }else {
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
             }
@@ -152,56 +151,53 @@ public class MainActivity extends AppCompatActivity {
 
         });
 //
-//        binding.btnStop.setOnClickListener(v -> {
-//                    serviceIntent.setAction(MusicService.ACTION_STOP);
-//                    startService(serviceIntent);
-//                }
-//        );
-//
-//        binding.btnPlay.setOnClickListener(v -> {
-//            if (mBound && mService != null) {
-//                mService.onPlay();
-//            }
-//        });
-//
-//        binding.btnPause.setOnClickListener(v -> {
-//            if (mBound && mService != null) {
-//                mService.onPause();
-//            }
-//
-//
-//        });
-//
-//        binding.btnNext.setOnClickListener(v ->{
-//            if (mBound && mService != null) {
-//                mService.onNext();
-//            }
-//                }
-//
-//        );
-//
-//        binding.btnPrev.setOnClickListener(v ->{
-//            if (mBound && mService != null) {
-//                mService.onPrev();
-//            }
-//
-//                }
-//        );
+        binding.btnStop.setOnClickListener(v -> {
+                    serviceIntent.setAction(MusicService.ACTION_STOP);
+                    startService(serviceIntent);
+                }
+        );
 
-        binding.btnStop.setOnClickListener(v -> sendAction(MusicService.ACTION_STOP));
-        binding.btnPlay.setOnClickListener(v -> sendAction(MusicService.ACTION_PLAY));
-        binding.btnPause.setOnClickListener(v -> sendAction(MusicService.ACTION_PAUSE));
+        binding.btnPlay.setOnClickListener(v -> {
+            if (mBound && mService != null) {
+                mService.onPlay();
+            }
+        });
+
+        binding.btnPause.setOnClickListener(v -> {
+            if (mBound && mService != null) {
+                mService.onPause();
+            }
+
+
+        });
+
         binding.btnNext.setOnClickListener(v ->{
-            Log.d(TAG, "setupClickListeners: "+s.artist+s.name);
-            sendAction(MusicService.ACTION_NEXT);
-          binding.currentSong.setText(mService.name);
-            Log.d(TAG, "setupClickListeners: "+"onNext Triggered");
-        });
-        binding.btnPrev.setOnClickListener(v -> sendAction(MusicService.ACTION_PREVIOUS));
+            if (mBound && mService != null) {
+                mService.onNext();
+            }
+                }
 
-        binding.btnSecondactivity.setOnClickListener(v -> {
-            startActivity(new Intent(this, SecondActivity.class));
-        });
+        );
+
+        binding.btnPrev.setOnClickListener(v ->{
+            if (mBound && mService != null) {
+                mService.onPrev();
+            }
+
+                }
+        );
+
+//        binding.btnStop.setOnClickListener(v -> sendAction(MusicService.ACTION_STOP));
+//        binding.btnPlay.setOnClickListener(v -> sendAction(MusicService.ACTION_PLAY));
+//        binding.btnPause.setOnClickListener(v -> sendAction(MusicService.ACTION_PAUSE));
+//        binding.btnNext.setOnClickListener(v ->{
+//            Log.d(TAG, "setupClickListeners: "+s.artist+s.name);
+//            sendAction(MusicService.ACTION_NEXT);
+//        });
+//        binding.btnPrev.setOnClickListener(v -> sendAction(MusicService.ACTION_PREVIOUS));
+
+        binding.btnSecondactivity.setOnClickListener(v ->
+            startActivity(new Intent(this, SecondActivity.class)));
     }
 
     private void setupSeekBar() {
@@ -235,10 +231,10 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void sendAction(String action) {
-        serviceIntent.setAction(action);
-        startService(serviceIntent);
-    }
+//    private void sendAction(String action) {
+//        serviceIntent.setAction(action);
+//        startService(serviceIntent);
+//    }
 
     void updateSongUI() {
             s = mService.getCurrentSong();
