@@ -105,14 +105,7 @@ public class SecondActivity extends AppCompatActivity {
         super.onResume();
         if(mBound && mService!=null){
             mService.cancelDelayedTask();
-
         }
-    }
-
-    @Override
-    protected void onUserLeaveHint() {
-        super.onUserLeaveHint();
-
     }
 
     @Override

@@ -365,6 +365,7 @@ public class MusicService extends Service {
                 .setContentTitle(s.name)
                 .setContentText(s.film + " - " + s.artist)
                 .setSmallIcon(R.drawable.library_music_24px)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .addAction(R.drawable.skip_previous_24px, "Prev", pendingPrevIntent);
 
         if (mediaPlayer != null && mediaPlayer.isPlaying()) {

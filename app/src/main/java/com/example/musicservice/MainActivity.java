@@ -140,6 +140,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        binding.songList.setOnItemClickListener((parent, view, position, id) -> {
+        });
+
         binding.btnStart.setOnClickListener(v -> {
             serviceIntent.setAction(null);
             serviceIntent.putExtra("is_foreground", binding.switchbutton.isChecked());
@@ -150,51 +153,51 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
+////
+//        binding.btnStop.setOnClickListener(v -> {
+//                    serviceIntent.setAction(MusicService.ACTION_STOP);
+//                    startService(serviceIntent);
+//                }
+//        );
 //
-        binding.btnStop.setOnClickListener(v -> {
-                    serviceIntent.setAction(MusicService.ACTION_STOP);
-                    startService(serviceIntent);
-                }
-        );
-
-        binding.btnPlay.setOnClickListener(v -> {
-            if (mBound && mService != null) {
-                mService.onPlay();
-            }
-        });
-
-        binding.btnPause.setOnClickListener(v -> {
-            if (mBound && mService != null) {
-                mService.onPause();
-            }
-
-
-        });
-
-        binding.btnNext.setOnClickListener(v ->{
-            if (mBound && mService != null) {
-                mService.onNext();
-            }
-                }
-
-        );
-
-        binding.btnPrev.setOnClickListener(v ->{
-            if (mBound && mService != null) {
-                mService.onPrev();
-            }
-
-                }
-        );
-
-//        binding.btnStop.setOnClickListener(v -> sendAction(MusicService.ACTION_STOP));
-//        binding.btnPlay.setOnClickListener(v -> sendAction(MusicService.ACTION_PLAY));
-//        binding.btnPause.setOnClickListener(v -> sendAction(MusicService.ACTION_PAUSE));
-//        binding.btnNext.setOnClickListener(v ->{
-//            Log.d(TAG, "setupClickListeners: "+s.artist+s.name);
-//            sendAction(MusicService.ACTION_NEXT);
+//        binding.btnPlay.setOnClickListener(v -> {
+//            if (mBound && mService != null) {
+//                mService.onPlay();
+//            }
 //        });
-//        binding.btnPrev.setOnClickListener(v -> sendAction(MusicService.ACTION_PREVIOUS));
+//
+//        binding.btnPause.setOnClickListener(v -> {
+//            if (mBound && mService != null) {
+//                mService.onPause();
+//            }
+//
+//
+//        });
+//
+//        binding.btnNext.setOnClickListener(v ->{
+//            if (mBound && mService != null) {
+//                mService.onNext();
+//            }
+//                }
+//
+//        );
+//
+//        binding.btnPrev.setOnClickListener(v ->{
+//            if (mBound && mService != null) {
+//                mService.onPrev();
+//            }
+//
+//                }
+//        );
+
+        binding.btnStop.setOnClickListener(v -> sendAction(MusicService.ACTION_STOP));
+        binding.btnPlay.setOnClickListener(v -> sendAction(MusicService.ACTION_PLAY));
+        binding.btnPause.setOnClickListener(v -> sendAction(MusicService.ACTION_PAUSE));
+        binding.btnNext.setOnClickListener(v ->{
+            Log.d(TAG, "setupClickListeners: "+s.artist+s.name);
+            sendAction(MusicService.ACTION_NEXT);
+        });
+        binding.btnPrev.setOnClickListener(v -> sendAction(MusicService.ACTION_PREVIOUS));
 
         binding.btnSecondactivity.setOnClickListener(v ->
             startActivity(new Intent(this, SecondActivity.class)));
@@ -231,10 +234,11 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-//    private void sendAction(String action) {
-//        serviceIntent.setAction(action);
-//        startService(serviceIntent);
-//    }
+    private void sendAction(String action) {
+        serviceIntent.setAction(action);
+        serviceIntent.putExtra("is_foreground",binding.switchbutton.isChecked());
+        startService(serviceIntent);
+    }
 
     void updateSongUI() {
             s = mService.getCurrentSong();
