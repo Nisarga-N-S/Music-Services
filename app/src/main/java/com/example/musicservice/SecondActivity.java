@@ -109,6 +109,15 @@ public class SecondActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        if (mBound && mService != null) {
+            if(!mService.notification)
+                mService.startDelayedTask();
+        }
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
         if (mBound) {

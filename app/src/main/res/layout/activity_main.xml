@@ -172,6 +172,7 @@
         android:id="@+id/switchbutton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:checked="true"
         app:layout_constraintTop_toTopOf="@id/foreground"
         app:layout_constraintBottom_toBottomOf="@id/foreground"
         app:layout_constraintEnd_toEndOf="parent"/>

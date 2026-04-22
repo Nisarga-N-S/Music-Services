@@ -98,9 +98,6 @@ public class MusicService extends Service {
 
         String action = intent.getAction();
 
-//        if(action==null) {
-//            onPlay();
-//        }else {
         if(action==null) {
             onPlay();
         }else{
@@ -111,13 +108,11 @@ public class MusicService extends Service {
                     break;
 
                 case ACTION_PAUSE:
-                    Log.d(TAG, "onStartCommand: " + "Onpauseclicked");
                     onPause();
                     break;
 
                 case ACTION_NEXT:
                     onNext();
-                    Log.d(TAG, "onStartCommand: " + "onNextcalled");
                     break;
 
                 case ACTION_PREVIOUS:
@@ -150,6 +145,7 @@ public class MusicService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        Log.d(TAG, "onBind: binded");
         return binder;
     }
 
@@ -159,6 +155,11 @@ public class MusicService extends Service {
         return true;
     }
 
+    @Override
+    public void onRebind(Intent intent) {
+        super.onRebind(intent);
+        Log.d(TAG, "onRebind: rebinded");
+    }
 
     @Override
     public void onDestroy() {
@@ -259,7 +260,6 @@ public class MusicService extends Service {
             state="Stopped";
         }
         updateAll();
-        Log.d(TAG, "onNext: ");
 
 
     }
@@ -285,12 +285,11 @@ public class MusicService extends Service {
     }
 
     public void onStop() {
-        state = "Stopped";
         if (mediaPlayer != null) {
-            mediaPlayer.stop();
             mediaPlayer.release();
             mediaPlayer = null;
         }
+        state = "Stopped";
         stopForeground(true);
         stopSelf();
         sendUIUpdate();
@@ -328,8 +327,9 @@ public class MusicService extends Service {
 
     private void updateAll() {
         sendUIUpdate();
-        if(notification)
+        if(notification) {
             updateNotification();
+        }
     }
 
 

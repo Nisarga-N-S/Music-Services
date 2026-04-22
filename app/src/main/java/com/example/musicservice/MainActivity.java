@@ -44,10 +44,13 @@ public class MainActivity extends AppCompatActivity {
                 v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
                 return insets;
             });
-            if(savedInstanceState==null) {
-                binding.switchbutton.setChecked(true);
-            }
+//            if(savedInstanceState==null) {
+
+//            }
+
+        Log.d(TAG, "onCreate: oncreate from activity");
         serviceIntent = new Intent(this, MusicService.class);
+        binding.switchbutton.setChecked(true);
         initReceiver();
         requestNotificationPermission();
         setupClickListeners();
@@ -57,10 +60,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
         IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
         registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
+        Log.d(TAG, "onStart: activity onstart");
     }
 
     @Override
@@ -108,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
             binding.state.setText(String.format(getString(R.string.state) + isState));
-            Log.d(TAG, "state " + isState);
+            Log.d(TAG, "state " + isState + "--------------");
             updateSongUI();
             if (isPlaying) {
                 binding.btnPause.setVisibility(VISIBLE);
@@ -223,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
-            binding.switchbutton.setChecked(mService.notification);
+//            binding.switchbutton.setChecked(mService.notification);
             Log.d(TAG, "onServiceConnected: "+binding.switchbutton.isChecked());
             updateSongList();
             updateSongUI();
