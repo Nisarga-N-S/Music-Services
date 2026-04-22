@@ -44,10 +44,13 @@ public class MainActivity extends AppCompatActivity {
                 v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
                 return insets;
             });
-            if(savedInstanceState==null) {
-                binding.switchbutton.setChecked(true);
-            }
+//            if(savedInstanceState==null) {
+
+//            }
+
+        Log.d(TAG, "onCreate: oncreate from activity");
         serviceIntent = new Intent(this, MusicService.class);
+        binding.switchbutton.setChecked(true);
         initReceiver();
         requestNotificationPermission();
         setupClickListeners();
@@ -57,28 +60,27 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-
         bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
         IntentFilter filter = new IntentFilter(MusicService.ACTION_UPDATE_UI);
         registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
+        Log.d(TAG, "onStart: activity onstart");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         if(mBound && mService!=null){
-            mService.cancelDelayedTask();
+                mService.cancelDelayedTask();
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-
-        if(mBound && mService!=null){
-            mService.startDelayedTask();
-
-        }
+        if (mBound && mService != null) {
+            if(!mService.notification)
+                mService.startDelayedTask();
+            }
     }
 
 
@@ -108,13 +110,13 @@ public class MainActivity extends AppCompatActivity {
             binding.seekbar.setMax(duration);
             binding.seekbar.setProgress(current);
             binding.duration.setText(formatted);
-            binding.state.setText(getString(R.string.state) + isState);
-            Log.d(TAG, "state " + isState);
+            binding.state.setText(String.format(getString(R.string.state) + isState));
+            Log.d(TAG, "state " + isState + "--------------");
             updateSongUI();
             if (isPlaying) {
                 binding.btnPause.setVisibility(VISIBLE);
                 binding.btnPlay.setVisibility(GONE);
-            } else {
+            }else {
                 binding.btnPause.setVisibility(GONE);
                 binding.btnPlay.setVisibility(VISIBLE);
             }
@@ -141,6 +143,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        binding.songList.setOnItemClickListener((parent, view, position, id) -> {
+        });
+
         binding.btnStart.setOnClickListener(v -> {
             serviceIntent.setAction(null);
             serviceIntent.putExtra("is_foreground", binding.switchbutton.isChecked());
@@ -151,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
-//
+////
 //        binding.btnStop.setOnClickListener(v -> {
 //                    serviceIntent.setAction(MusicService.ACTION_STOP);
 //                    startService(serviceIntent);
@@ -194,14 +199,11 @@ public class MainActivity extends AppCompatActivity {
         binding.btnNext.setOnClickListener(v ->{
             Log.d(TAG, "setupClickListeners: "+s.artist+s.name);
             sendAction(MusicService.ACTION_NEXT);
-          binding.currentSong.setText(mService.name);
-            Log.d(TAG, "setupClickListeners: "+"onNext Triggered");
         });
         binding.btnPrev.setOnClickListener(v -> sendAction(MusicService.ACTION_PREVIOUS));
 
-        binding.btnSecondactivity.setOnClickListener(v -> {
-            startActivity(new Intent(this, SecondActivity.class));
-        });
+        binding.btnSecondactivity.setOnClickListener(v ->
+            startActivity(new Intent(this, SecondActivity.class)));
     }
 
     private void setupSeekBar() {
@@ -224,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
-            binding.switchbutton.setChecked(mService.notification);
+//            binding.switchbutton.setChecked(mService.notification);
             Log.d(TAG, "onServiceConnected: "+binding.switchbutton.isChecked());
             updateSongList();
             updateSongUI();
@@ -237,6 +239,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void sendAction(String action) {
         serviceIntent.setAction(action);
+        serviceIntent.putExtra("is_foreground",binding.switchbutton.isChecked());
         startService(serviceIntent);
     }
 
